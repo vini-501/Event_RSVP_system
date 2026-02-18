@@ -44,6 +44,9 @@ export const ROUTES = {
   ORGANIZER_EVENT_MANAGE: (id: string) => `/organizer/events/${id}/manage`,
   ORGANIZER_EVENT_ATTENDEES: (id: string) => `/organizer/events/${id}/attendees`,
   ORGANIZER_EVENT_ANALYTICS: (id: string) => `/organizer/events/${id}/analytics`,
+  ADMIN_DASHBOARD: '/admin/dashboard',
+  ADMIN_USERS: '/admin/users',
+  ADMIN_EVENTS: '/admin/events',
 };
 
 // Pagination

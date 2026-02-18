@@ -21,11 +21,21 @@ const publicNavItems = [
   { label: 'Discover', href: ROUTES.EVENTS },
 ]
 
-const authNavItems = [
+const organizerNavItems = [
   { label: 'Dashboard', href: ROUTES.ORGANIZER_DASHBOARD },
   { label: 'Events', href: ROUTES.ORGANIZER_EVENTS },
+  { label: 'Create Event', href: '/organizer/create-event' },
+]
+
+const attendeeNavItems = [
   { label: 'My RSVPs', href: ROUTES.MY_RSVPS },
   { label: 'Tickets', href: '/my-tickets' },
+]
+
+const adminNavItems = [
+  { label: 'Dashboard', href: '/admin/dashboard' },
+  { label: 'Users', href: '/admin/users' },
+  { label: 'Events', href: '/admin/events' },
 ]
 
 export function Navbar() {
@@ -53,7 +63,13 @@ export function Navbar() {
     return pathname.startsWith(href)
   }
 
-  const navItems = isAuthenticated ? authNavItems : publicNavItems
+  const navItems = isAuthenticated
+    ? (user?.role === 'admin'
+        ? adminNavItems
+        : user?.role === 'organizer'
+          ? organizerNavItems
+          : attendeeNavItems)
+    : publicNavItems
 
   return (
     <nav className="sticky top-0 z-50 bg-card/80 backdrop-blur-xl border-b border-border/60">

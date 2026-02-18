@@ -1,4 +1,7 @@
+'use client'
+
 import { Navbar } from '@/components/navigation/navbar'
+import { ProtectedRoute } from '@/components/auth/protected-route'
 
 export default function OrganizerLayout({
   children,
@@ -6,9 +9,11 @@ export default function OrganizerLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <main>{children}</main>
-    </div>
+    <ProtectedRoute requiredRoles={['organizer', 'admin']}>
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main>{children}</main>
+      </div>
+    </ProtectedRoute>
   )
 }

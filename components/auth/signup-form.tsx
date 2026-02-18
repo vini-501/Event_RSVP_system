@@ -34,7 +34,7 @@ const signupSchema = z
     email: z.string().email('Invalid email address'),
     password: z.string().min(6, 'Password must be at least 6 characters'),
     confirmPassword: z.string(),
-    role: z.enum(['attendee', 'organizer']),
+    role: z.enum(['attendee', 'organizer', 'admin']),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
@@ -64,7 +64,13 @@ export function SignupForm() {
 
     try {
       await signup(data.email, data.password, data.name, data.role)
-      router.push(data.role === 'organizer' ? ROUTES.ORGANIZER_DASHBOARD : ROUTES.EVENTS)
+      if (data.role === 'admin') {
+        router.push(ROUTES.ADMIN_DASHBOARD)
+      } else if (data.role === 'organizer') {
+        router.push(ROUTES.ORGANIZER_DASHBOARD)
+      } else {
+        router.push(ROUTES.EVENTS)
+      }
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'Failed to create account. Please try again.')
     }
@@ -181,10 +187,13 @@ export function SignupForm() {
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="attendee">
-                        Discover and attend events
+                        🎟️ Attendee — Discover and attend events
                       </SelectItem>
                       <SelectItem value="organizer">
-                        Create and organize events
+                        📋 Organizer — Create and manage events
+                      </SelectItem>
+                      <SelectItem value="admin">
+                        🛡️ Admin — Manage users and platform
                       </SelectItem>
                     </SelectContent>
                   </Select>

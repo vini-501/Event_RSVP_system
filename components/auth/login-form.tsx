@@ -59,7 +59,9 @@ export function LoginForm() {
           .single()
 
         const role = profile?.role || user.user_metadata?.role || 'attendee'
-        if (role === 'organizer' || role === 'admin') {
+        if (role === 'admin') {
+          router.push(ROUTES.ADMIN_DASHBOARD)
+        } else if (role === 'organizer') {
           router.push(ROUTES.ORGANIZER_DASHBOARD)
         } else {
           router.push(ROUTES.EVENTS)
