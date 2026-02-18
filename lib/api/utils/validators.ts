@@ -28,6 +28,8 @@ const baseEventSchema = z.object({
   endDateTime: z.string().datetime('Invalid end date/time'),
   imageUrl: z.string().url().optional(),
   rsvpDeadline: z.string().datetime().optional(),
+  tags: z.array(z.string()).optional(),
+  price: z.number().min(0).optional(),
 });
 
 export const createEventSchema = baseEventSchema.refine(data => new Date(data.endDateTime) > new Date(data.startDateTime), {

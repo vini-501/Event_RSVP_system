@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { Search, Filter, MapPin, Calendar } from 'lucide-react'
+import { useState, useMemo, useEffect } from 'react'
+import { Search, Filter, MapPin, Calendar, Loader2, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -13,16 +13,38 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { EventCard } from '@/components/events/event-card'
-import { mockEvents } from '@/lib/mock-data'
 import { EVENT_CATEGORIES } from '@/lib/constants'
 
 export default function EventsPage() {
+  const [events, setEvents] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [sortBy, setSortBy] = useState<'upcoming' | 'popular'>('upcoming')
 
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const response = await fetch('/api/events?limit=50')
+        if (!response.ok) throw new Error('Failed to fetch events')
+        
+        const data = await response.json()
+        setEvents(data.data?.events || [])
+      } catch (err) {
+        console.error('Failed to load events', err)
+        setError('Failed to load events')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchEvents()
+  }, [])
+
   const filteredEvents = useMemo(() => {
-    let filtered = mockEvents
+    let filtered = [...events]
 
     // Filter by search term
     if (searchTerm) {
@@ -38,101 +60,110 @@ export default function EventsPage() {
     }
 
     // Filter by status (published or live)
+    // Note: The API should ideally filter this, but let's be safe
     filtered = filtered.filter((event) => event.status === 'published' || event.status === 'live')
 
     // Sort
     if (sortBy === 'popular') {
-      filtered.sort((a, b) => b.currentAttendees - a.currentAttendees)
+      // Use waitlist/attendee count for popularity if available, otherwise fallback
+      filtered.sort((a, b) => (b.current_attendees || 0) - (a.current_attendees || 0))
     } else {
-      filtered.sort((a, b) => a.startDate.getTime() - b.startDate.getTime())
+      filtered.sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime())
     }
 
     return filtered
-  }, [searchTerm, selectedCategory, sortBy])
+  }, [events, searchTerm, selectedCategory, sortBy])
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="mb-2 text-3xl font-bold text-foreground">
-          Discover Events
-        </h1>
-        <p className="text-muted-foreground">
-          Find events happening near you
-        </p>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">Discover Events</h1>
+        <p className="mt-2 text-muted-foreground">Find and attend the best tech events near you.</p>
       </div>
 
-      {/* Search and Filters */}
-      <Card className="mb-8 p-4 sm:p-6 border-border/60">
-        <div className="space-y-4">
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search events..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 rounded-xl"
-              />
-            </div>
-            <Button variant="outline" size="icon" className="rounded-xl">
-              <Filter className="h-4 w-4" />
-            </Button>
-          </div>
-
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="w-full sm:w-[200px]">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {EVENT_CATEGORIES.map((cat) => (
-                  <SelectItem key={cat.value} value={cat.value}>
-                    {cat.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={sortBy}
-              onValueChange={(value) => setSortBy(value as 'upcoming' | 'popular')}
-            >
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="upcoming">Upcoming</SelectItem>
-                <SelectItem value="popular">Most Popular</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+      {/* Filters */}
+      <div className="mb-8 grid gap-4 md:grid-cols-4">
+        <div className="relative md:col-span-2">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search events..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9 rounded-xl"
+          />
         </div>
-      </Card>
-
-      {/* Results Info */}
-      <div className="mb-6 text-sm text-muted-foreground">
-        Showing {filteredEvents.length} event{filteredEvents.length !== 1 ? 's' : ''}
+        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+          <SelectTrigger className="rounded-xl">
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4" />
+              <SelectValue placeholder="Category" />
+            </div>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Categories</SelectItem>
+            {EVENT_CATEGORIES.map((category) => (
+              <SelectItem key={category.value} value={category.value}>
+                {category.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
+          <SelectTrigger className="rounded-xl">
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="upcoming">Upcoming</SelectItem>
+            <SelectItem value="popular">Most Popular</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Events Grid */}
-      {filteredEvents.length > 0 ? (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+          <Loader2 className="h-10 w-10 animate-spin mb-4 text-primary" />
+          <p>Loading amazing events...</p>
+        </div>
+      ) : error ? (
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-destructive/20 bg-destructive/5 py-16 text-center text-destructive">
+          <p className="mb-4">{error}</p>
+          <Button 
+            variant="outline" 
+            className="border-destructive/30 hover:bg-destructive/10"
+            onClick={() => window.location.reload()}
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Try Again
+          </Button>
+        </div>
+      ) : filteredEvents.length > 0 ? (
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filteredEvents.map((event) => (
             <EventCard key={event.id} event={event} />
           ))}
         </div>
       ) : (
-        <Card className="p-12 text-center">
-          <Calendar className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-          <h3 className="mb-2 text-lg font-semibold text-foreground">
-            No events found
-          </h3>
-          <p className="text-muted-foreground">
-            Try adjusting your search or filter criteria
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border/60 bg-muted/20 py-20 text-center">
+          <div className="rounded-full bg-muted p-4 mb-4">
+            <Search className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <h3 className="text-lg font-semibold">No events found</h3>
+          <p className="text-sm text-muted-foreground max-w-sm mt-2">
+            We couldn't find any events matching your criteria. Try adjusting your filters.
           </p>
-        </Card>
+          <Button 
+            variant="link" 
+            onClick={() => {
+              setSearchTerm('')
+              setSelectedCategory('all')
+            }}
+            className="mt-4"
+          >
+            Clear all filters
+          </Button>
+        </div>
       )}
     </div>
   )

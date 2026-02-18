@@ -36,16 +36,48 @@ export default function CreateEventPage() {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
+  const [submitError, setSubmitError] = useState<string | null>(null)
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
+    setSubmitError(null)
 
-    // TODO: Replace with actual Supabase insert
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    try {
+      const response = await fetch('/api/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: formData.name,
+          description: formData.description,
+          category: formData.category,
+          location: [formData.location, formData.address, formData.city, formData.state, formData.zipCode]
+            .filter(Boolean)
+            .join(', '),
+          capacity: parseInt(formData.capacity) || 1,
+          startDateTime: new Date(formData.startDate).toISOString(),
+          endDateTime: new Date(formData.endDate).toISOString(),
+          price: formData.price ? parseFloat(formData.price) : 0,
+          tags: formData.tags ? formData.tags.split(',').map((t: string) => t.trim()) : [],
+        }),
+      })
 
-    alert('Event created successfully! (Mock — connect to Supabase for real persistence)')
-    setIsSubmitting(false)
-    router.push('/organizer/events')
+      const data = await response.json()
+
+      if (!response.ok) {
+        const errMsg = data.error?.details
+          ? Object.values(data.error.details).join(', ')
+          : data.error?.message || 'Failed to create event'
+        setSubmitError(errMsg)
+        return
+      }
+
+      router.push('/organizer/events')
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Something went wrong')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -285,7 +317,13 @@ export default function CreateEventPage() {
           </Card>
 
           {/* Actions */}
-          <div className="flex gap-3 justify-end">
+          <div className="flex flex-col gap-4">
+            {submitError && (
+              <div className="rounded-xl bg-red-500/10 border border-red-500/20 p-4 text-sm text-red-600">
+                <span className="font-medium">Error:</span> {submitError}
+              </div>
+            )}
+            <div className="flex gap-3 justify-end">
             <Link href="/organizer/events">
               <Button type="button" variant="outline" className="rounded-xl">Cancel</Button>
             </Link>
@@ -300,7 +338,8 @@ export default function CreateEventPage() {
               )}
             </Button>
           </div>
-        </form>
+        </div>
+      </form>
       </div>
     </div>
   )
