@@ -139,6 +139,15 @@ export async function createRsvp(
       event_id: eventId,
       check_in_status: 'not_checked_in',
     });
+
+    // Auto-close: if event is now at capacity, flag it
+    const stillHasCapacity = await checkEventCapacity(eventId, 0);
+    if (!stillHasCapacity) {
+      await supabase
+        .from('events')
+        .update({ is_capacity_full: true, updated_at: new Date().toISOString() })
+        .eq('id', eventId);
+    }
   }
 
   // Create waitlist entry if applicable
@@ -174,13 +183,54 @@ export async function updateRsvp(
   }
 
   const supabase = await createClient();
+  const newStatus = data.status || rsvp.status;
+  const newPlusOnes = data.plusOneCount ?? rsvp.plus_one_count;
+
+  // If changing TO 'going' (from maybe/not_going), re-check capacity
+  let isWaitlisted = rsvp.is_waitlisted;
+  let waitlistPosition = rsvp.waitlist_position;
+
+  if (newStatus === 'going' && rsvp.status !== 'going') {
+    const hasCapacity = await checkEventCapacity(rsvp.event_id, newPlusOnes);
+    if (!hasCapacity) {
+      isWaitlisted = true;
+      const { count } = await supabase
+        .from('waitlist')
+        .select('*', { count: 'exact', head: true })
+        .eq('event_id', rsvp.event_id);
+      waitlistPosition = (count || 0) + 1;
+
+      // Add to waitlist
+      await supabase.from('waitlist').insert({
+        event_id: rsvp.event_id,
+        rsvp_id: rsvpId,
+        user_id: userId,
+        status: 'waiting',
+        position: waitlistPosition,
+      });
+    }
+  }
+
+  // If changing FROM 'going' to something else, free up capacity
+  if (rsvp.status === 'going' && newStatus !== 'going' && !rsvp.is_waitlisted) {
+    // Delete the ticket since they're no longer going
+    await supabase.from('tickets').delete().eq('rsvp_id', rsvpId);
+    // Remove waitlist flag and re-open capacity flag on the event
+    await supabase
+      .from('events')
+      .update({ is_capacity_full: false, updated_at: new Date().toISOString() })
+      .eq('id', rsvp.event_id);
+  }
+
   const { data: updated, error } = await supabase
     .from('rsvps')
     .update({
-      status: data.status || rsvp.status,
-      plus_one_count: data.plusOneCount ?? rsvp.plus_one_count,
+      status: newStatus,
+      plus_one_count: newPlusOnes,
       dietary_preferences: data.dietaryPreferences ?? rsvp.dietary_preferences,
       custom_responses: data.customResponses ?? rsvp.custom_responses,
+      is_waitlisted: isWaitlisted,
+      waitlist_position: waitlistPosition,
       updated_at: new Date().toISOString(),
     })
     .eq('id', rsvpId)
@@ -188,6 +238,34 @@ export async function updateRsvp(
     .single();
 
   if (error) throw error;
+
+  // If newly going and not waitlisted, generate ticket
+  if (newStatus === 'going' && !isWaitlisted && rsvp.status !== 'going') {
+    const { data: existingTicket } = await supabase
+      .from('tickets')
+      .select('id')
+      .eq('rsvp_id', rsvpId)
+      .single();
+
+    if (!existingTicket) {
+      await supabase.from('tickets').insert({
+        rsvp_id: rsvpId,
+        user_id: userId,
+        event_id: rsvp.event_id,
+        check_in_status: 'not_checked_in',
+      });
+    }
+
+    // Check if event is now full
+    const stillHasCapacity = await checkEventCapacity(rsvp.event_id, 0);
+    if (!stillHasCapacity) {
+      await supabase
+        .from('events')
+        .update({ is_capacity_full: true, updated_at: new Date().toISOString() })
+        .eq('id', rsvp.event_id);
+    }
+  }
+
   return updated;
 }
 
@@ -207,6 +285,14 @@ export async function deleteRsvp(rsvpId: string, userId: string) {
   await supabase.from('waitlist').delete().eq('rsvp_id', rsvpId);
   const { error } = await supabase.from('rsvps').delete().eq('id', rsvpId);
   if (error) throw error;
+
+  // If user was 'going' and not waitlisted, re-open capacity flag
+  if (rsvp.status === 'going' && !rsvp.is_waitlisted) {
+    await supabase
+      .from('events')
+      .update({ is_capacity_full: false, updated_at: new Date().toISOString() })
+      .eq('id', rsvp.event_id);
+  }
 }
 
 /**

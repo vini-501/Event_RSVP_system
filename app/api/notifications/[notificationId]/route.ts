@@ -27,7 +27,7 @@ export async function PUT(
 
     const { data: updated, error: updateError } = await supabase
       .from('notifications')
-      .update({ status: 'sent', updated_at: new Date().toISOString() })
+      .update({ status: 'read', updated_at: new Date().toISOString() })
       .eq('id', notificationId)
       .select()
       .single();
