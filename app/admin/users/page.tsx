@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,13 +13,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Users, Search, Shield, MoreVertical, Mail, Calendar } from 'lucide-react'
+import { Users, Search, Shield, MoreVertical, Mail, Calendar, Eye, UserCog, UserX } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { useToast } from '@/hooks/use-toast'
 
 const mockUsers = [
   { id: '1', name: 'Sarah Johnson', email: 'sarah@example.com', role: 'organizer', status: 'active', joinedAt: '2025-11-15', events: 8 },
@@ -43,10 +45,52 @@ const statusBadge: Record<string, string> = {
 }
 
 export default function AdminUsersPage() {
+  const router = useRouter()
+  const { toast } = useToast()
   const [searchTerm, setSearchTerm] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
+  const [users, setUsers] = useState(mockUsers)
 
-  const filteredUsers = mockUsers.filter((user) => {
+  const cycleRole = (role: string) => {
+    if (role === 'attendee') return 'organizer'
+    if (role === 'organizer') return 'admin'
+    return 'attendee'
+  }
+
+  const handleViewProfile = (user: (typeof mockUsers)[number]) => {
+    // Route to profile page while preserving target user context.
+    router.push(`/profile?user=${user.id}`)
+  }
+
+  const handleChangeRole = (user: (typeof mockUsers)[number]) => {
+    const nextRole = cycleRole(user.role)
+    setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, role: nextRole } : u)))
+    toast({
+      title: 'Role updated',
+      description: `${user.name} is now ${nextRole}.`,
+    })
+  }
+
+  const handleSendEmail = (user: (typeof mockUsers)[number]) => {
+    const subject = encodeURIComponent('EventEase Admin Message')
+    const body = encodeURIComponent(`Hi ${user.name},\n\n`)
+    window.location.href = `mailto:${user.email}?subject=${subject}&body=${body}`
+    toast({
+      title: 'Opening email client',
+      description: `Composing email to ${user.email}`,
+    })
+  }
+
+  const handleSuspendToggle = (user: (typeof mockUsers)[number]) => {
+    const nextStatus = user.status === 'active' ? 'suspended' : 'active'
+    setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, status: nextStatus } : u)))
+    toast({
+      title: nextStatus === 'suspended' ? 'User suspended' : 'User reactivated',
+      description: `${user.name} is now ${nextStatus}.`,
+    })
+  }
+
+  const filteredUsers = users.filter((user) => {
     const matchesSearch =
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase())
@@ -68,7 +112,7 @@ export default function AdminUsersPage() {
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Shield className="h-4 w-4" />
-            {mockUsers.length} total users
+            {users.length} total users
           </div>
         </div>
 
@@ -152,10 +196,18 @@ export default function AdminUsersPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem>View Profile</DropdownMenuItem>
-                          <DropdownMenuItem>Change Role</DropdownMenuItem>
-                          <DropdownMenuItem>Send Email</DropdownMenuItem>
-                          <DropdownMenuItem className="text-red-600">Suspend User</DropdownMenuItem>
+                          <DropdownMenuItem className="gap-2" onSelect={() => handleViewProfile(user)}>
+                            <Eye className="h-3.5 w-3.5" /> View Profile
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="gap-2" onSelect={() => handleChangeRole(user)}>
+                            <UserCog className="h-3.5 w-3.5" /> Change Role
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="gap-2" onSelect={() => handleSendEmail(user)}>
+                            <Mail className="h-3.5 w-3.5" /> Send Email
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="gap-2 text-red-600" onSelect={() => handleSuspendToggle(user)}>
+                            <UserX className="h-3.5 w-3.5" /> {user.status === 'active' ? 'Suspend User' : 'Reactivate User'}
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </td>
