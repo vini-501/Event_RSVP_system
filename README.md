@@ -147,3 +147,7 @@ Actively iterating. Current implementation is functional and portfolio-ready, wi
 ![Attendee Page](assets/images/attendee%20page.png)
 ![Organiser Page](assets/images/organiser%20page.png)
 ![Admin Page](assets/images/admin%20page.png)
+![DB Home Page](assets/images/db%20home%20page.png)
+![Metrics](assets/images/metrics.png)
+![Tables](assets/images/tables.png)
+
