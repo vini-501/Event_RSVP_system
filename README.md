@@ -138,3 +138,12 @@ pnpm lint     # linting
 
 Actively iterating. Current implementation is functional and portfolio-ready, with room for further enhancements (testing, CI/CD, richer analytics, and deployment hardening).
 
+
+## Assets
+
+![Home Page](assets/images/home%20page.png)
+![Sign In Page](assets/images/sign%20in%20page.png)
+![Attendee Page](assets/images/attendee%20page.png)
+![Organiser Page](assets/images/organiser%20page.png)
+![Admin Page](assets/images/admin%20page.png)
+![Features](assets/images/features.png)
