@@ -142,8 +142,8 @@ Actively iterating. Current implementation is functional and portfolio-ready, wi
 ## Assets
 
 ![Home Page](assets/images/home%20page.png)
+![Features](assets/images/features.png)
 ![Sign In Page](assets/images/sign%20in%20page.png)
 ![Attendee Page](assets/images/attendee%20page.png)
 ![Organiser Page](assets/images/organiser%20page.png)
 ![Admin Page](assets/images/admin%20page.png)
-![Features](assets/images/features.png)

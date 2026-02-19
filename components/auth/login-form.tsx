@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -40,6 +40,7 @@ export function LoginForm() {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [socialLoading, setSocialLoading] = useState<string | null>(null)
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { login, signup, isLoading } = useAuth()
 
   const loginForm = useForm<LoginValues>({
@@ -59,6 +60,24 @@ export function LoginForm() {
     signupForm.reset()
     setShowPassword(false)
   }
+
+  useEffect(() => {
+    const oauthError = searchParams.get('error')
+    const oauthErrorDescription = searchParams.get('error_description')
+    if (!oauthError) return
+
+    if (oauthErrorDescription) {
+      setSubmitError(oauthErrorDescription)
+      return
+    }
+
+    if (oauthError === 'auth_callback_failed') {
+      setSubmitError('OAuth sign-in failed. Check provider setup and allowed callback URL.')
+      return
+    }
+
+    setSubmitError(oauthError.replace(/_/g, ' '))
+  }, [searchParams])
 
   const redirectByRole = async () => {
     const supabase = createClient()
@@ -98,9 +117,12 @@ export function LoginForm() {
     setSubmitError(null)
     try {
       const supabase = createClient()
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim()
+      const redirectBase =
+        appUrl && /^https?:\/\//.test(appUrl) ? appUrl.replace(/\/$/, '') : window.location.origin
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
-        options: { redirectTo: `${window.location.origin}/auth/callback` },
+        options: { redirectTo: `${redirectBase}/auth/callback` },
       })
       if (error) throw error
     } catch (e) {

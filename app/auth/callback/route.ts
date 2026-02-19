@@ -5,6 +5,8 @@ import { cookies } from 'next/headers'
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
+  const authError = requestUrl.searchParams.get('error')
+  const authErrorDescription = requestUrl.searchParams.get('error_description')
   const origin = requestUrl.origin
 
   if (code) {
@@ -44,6 +46,14 @@ export async function GET(request: Request) {
       }
       return NextResponse.redirect(`${origin}/events`)
     }
+
+    const message = encodeURIComponent(error.message)
+    return NextResponse.redirect(`${origin}/login?error=oauth_exchange_failed&error_description=${message}`)
+  }
+
+  if (authError || authErrorDescription) {
+    const message = encodeURIComponent(authErrorDescription || authError || 'OAuth sign-in failed')
+    return NextResponse.redirect(`${origin}/login?error=oauth_provider_error&error_description=${message}`)
   }
 
   // Return to login with error
