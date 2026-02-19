@@ -1,55 +1,168 @@
 'use client'
 
-import { useMemo, use } from 'react'
-import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, AlertCircle, Calendar, MapPin, Tag, Clock } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
 import { format } from 'date-fns'
+import { ArrowLeft, Calendar, MapPin, Tag, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { EventDetailsSection } from '@/components/events/event-details-section'
-import { CountdownTimer } from '@/components/events/countdown-timer'
-import { SeatAvailability } from '@/components/events/seat-availability'
-import { EventCard } from '@/components/events/event-card'
-import { mockEvents } from '@/lib/mock-data'
-import { ROUTES, DATE_FORMAT } from '@/lib/constants'
+import { useAuth } from '@/lib/auth-context'
+import { ROUTES } from '@/lib/constants'
 
-export default function EventDetailsPage({
-  params,
-}: {
-  params: Promise<{ eventId: string }>
-}) {
-  const { eventId } = use(params)
+type EventDetails = {
+  id: string
+  name: string
+  description: string
+  category: string
+  location: string
+  capacity: number
+  start_date: string
+  end_date: string
+  price?: number
+  status: string
+}
 
-  const event = useMemo(
-    () => mockEvents.find((e) => e.id === eventId),
-    [eventId]
-  )
+type Rsvp = {
+  id: string
+  status: 'going' | 'maybe' | 'not_going'
+}
 
-  if (!event) {
-    notFound()
+export default function EventDetailsPage() {
+  const params = useParams<{ eventId: string }>()
+  const router = useRouter()
+  const { user } = useAuth()
+  const eventId = params?.eventId
+
+  const [event, setEvent] = useState<EventDetails | null>(null)
+  const [rsvp, setRsvp] = useState<Rsvp | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSavingRsvp, setIsSavingRsvp] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [rsvpMessage, setRsvpMessage] = useState<string | null>(null)
+
+  useEffect(() => {
+    const loadEvent = async () => {
+      if (!eventId) return
+
+      try {
+        setIsLoading(true)
+        setError(null)
+        const response = await fetch(`/api/events/${eventId}`, { cache: 'no-store' })
+        const data = await response.json().catch(() => ({}))
+
+        if (!response.ok) {
+          throw new Error(data?.error?.message || 'Event not found')
+        }
+
+        setEvent(data.data || null)
+      } catch (err: any) {
+        setError(err?.message || 'Failed to load event')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadEvent()
+  }, [eventId])
+
+  useEffect(() => {
+    const loadMyRsvp = async () => {
+      if (!eventId || !user?.id) {
+        setRsvp(null)
+        return
+      }
+
+      try {
+        const response = await fetch(`/api/rsvps?eventId=${eventId}`, { cache: 'no-store' })
+        if (!response.ok) return
+        const data = await response.json().catch(() => ({}))
+        const mine = data?.data?.rsvps?.[0]
+        if (mine) {
+          setRsvp({ id: mine.id, status: mine.status })
+        } else {
+          setRsvp(null)
+        }
+      } catch {
+        setRsvp(null)
+      }
+    }
+
+    loadMyRsvp()
+  }, [eventId, user?.id])
+
+  const submitRsvp = async (status: 'going' | 'maybe' | 'not_going') => {
+    if (!eventId) return
+    if (!user?.id) {
+      router.push(`/login?next=${encodeURIComponent(`/events/${eventId}`)}`)
+      return
+    }
+
+    try {
+      setIsSavingRsvp(true)
+      setRsvpMessage(null)
+
+      if (rsvp?.id) {
+        const response = await fetch(`/api/rsvps/${rsvp.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status }),
+        })
+        const data = await response.json().catch(() => ({}))
+        if (!response.ok) throw new Error(data?.error?.message || 'Failed to update RSVP')
+        setRsvp((prev) => (prev ? { ...prev, status } : prev))
+        setRsvpMessage('Your RSVP was updated.')
+        return
+      }
+
+      const response = await fetch('/api/rsvps', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId, status, plusOneCount: 0 }),
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data?.error?.message || 'Failed to submit RSVP')
+      const created = data?.data?.rsvp
+      setRsvp({ id: created.id, status: created.status })
+      setRsvpMessage('Your RSVP was submitted.')
+    } catch (err: any) {
+      setRsvpMessage(err?.message || 'Failed to save RSVP')
+    } finally {
+      setIsSavingRsvp(false)
+    }
   }
 
-  const relatedEvents = useMemo(
-    () =>
-      mockEvents
-        .filter(
-          (e) =>
-            e.category === event.category &&
-            e.id !== event.id &&
-            (e.status === 'published' || e.status === 'live')
-        )
-        .slice(0, 3),
-    [event.category, event.id]
-  )
+  if (isLoading) {
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
+        <p className="text-muted-foreground">Loading event...</p>
+      </div>
+    )
+  }
 
-  const isFull = event.currentAttendees >= event.capacity
-  const isUpcoming = event.startDate > new Date()
+  if (!event || error) {
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
+        <p className="text-muted-foreground">{error || 'Event not found'}</p>
+        <Link href={ROUTES.EVENTS}>
+          <Button variant="outline" className="mt-4">Back to Events</Button>
+        </Link>
+      </div>
+    )
+  }
+
+  const statusLabel =
+    rsvp?.status === 'going'
+      ? 'Going'
+      : rsvp?.status === 'maybe'
+        ? 'Maybe'
+        : rsvp?.status === 'not_going'
+          ? 'Not Going'
+          : 'Not Responded'
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* Back Button */}
+    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
       <Link href={ROUTES.EVENTS}>
         <Button variant="ghost" size="sm" className="mb-6 gap-2 rounded-xl">
           <ArrowLeft className="h-4 w-4" />
@@ -57,140 +170,79 @@ export default function EventDetailsPage({
         </Button>
       </Link>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        {/* Main Content */}
-        <div className="lg:col-span-2">
-          {/* Event Image / Hero */}
-          <div className="mb-6 aspect-video overflow-hidden rounded-xl bg-gradient-to-br from-primary/10 via-primary/5 to-background relative">
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Calendar className="h-16 w-16 text-primary/15" />
-            </div>
-            <div className="absolute bottom-4 left-4 flex gap-2">
-              <Badge className="rounded-full bg-primary/90 text-primary-foreground">
-                {event.category}
-              </Badge>
-              <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${
-                event.status === 'live'
-                  ? 'bg-emerald-500/90 text-white'
-                  : 'bg-card/90 text-foreground backdrop-blur-sm'
-              }`}>
-                <span className={`h-1.5 w-1.5 rounded-full ${
-                  event.status === 'live' ? 'bg-white animate-pulse' : 'bg-emerald-500'
-                }`} />
-                {event.status === 'live' ? 'Live Now' : 'Open'}
-              </span>
-            </div>
+      <div className="space-y-6">
+        <div>
+          <div className="mb-2 flex items-center gap-2">
+            <h1 className="text-3xl font-bold text-foreground">{event.name}</h1>
+            <Badge>{event.category}</Badge>
           </div>
-
-          {/* Event Details */}
-          <EventDetailsSection event={event} />
-
-          {/* Related Events */}
-          {relatedEvents.length > 0 && (
-            <div className="mt-12">
-              <h3 className="mb-6 text-2xl font-bold text-foreground">
-                Similar Events
-              </h3>
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                {relatedEvents.map((relatedEvent) => (
-                  <EventCard
-                    key={relatedEvent.id}
-                    event={relatedEvent}
-                    variant="compact"
-                  />
-                ))}
-              </div>
-            </div>
-          )}
+          <p className="text-muted-foreground">{event.description}</p>
         </div>
 
-        {/* Sidebar */}
-        <div className="lg:col-span-1">
-          <div className="sticky top-24 space-y-4">
-            {/* Countdown Timer */}
-            {isUpcoming && (
-              <Card className="p-5 border-border/60">
-                <CountdownTimer targetDate={event.startDate} label="Event starts in" />
-              </Card>
-            )}
-
-            {/* Seat Availability */}
-            <Card className="p-5 border-border/60">
-              <SeatAvailability
-                current={event.currentAttendees}
-                total={event.capacity}
-              />
-            </Card>
-
-            {/* Event Quick Info */}
-            <Card className="p-5 space-y-4 border-border/60">
-              <div className="flex items-start gap-3">
-                <div className="rounded-lg bg-primary/10 p-2">
-                  <Calendar className="h-4 w-4 text-primary" />
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Date & Time</p>
-                  <p className="text-sm font-medium text-foreground mt-0.5">
-                    {format(event.startDate, DATE_FORMAT)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {format(event.startDate, 'h:mm a')}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="rounded-lg bg-primary/10 p-2">
-                  <MapPin className="h-4 w-4 text-primary" />
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Location</p>
-                  <p className="text-sm font-medium text-foreground mt-0.5">
-                    {event.location}
-                  </p>
-                </div>
-              </div>
-              {event.price && (
-                <div className="flex items-start gap-3">
-                  <div className="rounded-lg bg-primary/10 p-2">
-                    <Tag className="h-4 w-4 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Price</p>
-                    <p className="text-lg font-bold text-primary mt-0.5">
-                      ${event.price}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </Card>
-
-            {/* Capacity Warning */}
-            {isFull && (
-              <Card className="border-amber-500/30 bg-amber-500/5 p-5">
-                <div className="flex gap-3">
-                  <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-medium text-amber-900">Event is Full</p>
-                    <p className="text-sm text-amber-800 mt-1">
-                      This event has reached maximum capacity. You may still join the waitlist.
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            )}
-
-            {/* RSVP Button */}
-            <Link href={ROUTES.EVENT_RSVP(event.id)} className="block">
-              <Button
-                size="lg"
-                className="w-full rounded-xl shadow-md shadow-primary/25"
-                disabled={isFull}
-              >
-                {isFull ? 'Join Waitlist' : 'RSVP Now'}
-              </Button>
-            </Link>
+        <Card className="p-5 space-y-4">
+          <div className="flex items-start gap-3">
+            <Calendar className="h-4 w-4 text-primary mt-1" />
+            <div>
+              <p className="text-sm font-medium">Date & Time</p>
+              <p className="text-sm text-muted-foreground">
+                {format(new Date(event.start_date), 'MMM dd, yyyy h:mm a')} to{' '}
+                {format(new Date(event.end_date), 'MMM dd, yyyy h:mm a')}
+              </p>
+            </div>
           </div>
-        </div>
+          <div className="flex items-start gap-3">
+            <MapPin className="h-4 w-4 text-primary mt-1" />
+            <div>
+              <p className="text-sm font-medium">Location</p>
+              <p className="text-sm text-muted-foreground">{event.location}</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <Users className="h-4 w-4 text-primary mt-1" />
+            <div>
+              <p className="text-sm font-medium">Capacity</p>
+              <p className="text-sm text-muted-foreground">{event.capacity} attendees</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <Tag className="h-4 w-4 text-primary mt-1" />
+            <div>
+              <p className="text-sm font-medium">Price</p>
+              <p className="text-sm text-muted-foreground">
+                {event.price && event.price > 0 ? `$${event.price}` : 'Free'}
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-5">
+          <p className="text-sm font-medium mb-3">Your RSVP</p>
+          <p className="text-sm text-muted-foreground mb-4">Current: {statusLabel}</p>
+          <div className="grid gap-2 sm:grid-cols-3">
+            <Button
+              variant={rsvp?.status === 'going' ? 'default' : 'outline'}
+              disabled={isSavingRsvp}
+              onClick={() => submitRsvp('going')}
+            >
+              Going
+            </Button>
+            <Button
+              variant={rsvp?.status === 'maybe' ? 'default' : 'outline'}
+              disabled={isSavingRsvp}
+              onClick={() => submitRsvp('maybe')}
+            >
+              Maybe
+            </Button>
+            <Button
+              variant={rsvp?.status === 'not_going' ? 'default' : 'outline'}
+              disabled={isSavingRsvp}
+              onClick={() => submitRsvp('not_going')}
+            >
+              Not Going
+            </Button>
+          </div>
+          {rsvpMessage && <p className="text-sm text-muted-foreground mt-3">{rsvpMessage}</p>}
+        </Card>
       </div>
     </div>
   )

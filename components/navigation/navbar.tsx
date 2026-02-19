@@ -6,6 +6,8 @@ import { usePathname, useRouter } from 'next/navigation'
 import { Menu, X, LogOut, User, Search, Settings, Bell } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Input } from '@/components/ui/input'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,6 +42,9 @@ const adminNavItems = [
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [notifications, setNotifications] = useState<any[]>([])
+  const [isNotificationsLoading, setIsNotificationsLoading] = useState(false)
   const { isAuthenticated, user, logout, isLoading } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
@@ -70,6 +75,40 @@ export function Navbar() {
           ? organizerNavItems
           : attendeeNavItems)
     : publicNavItems
+
+  const unreadCount = notifications.filter((n) => n.status !== 'read').length
+
+  const handleSearchSubmit = () => {
+    const q = searchQuery.trim()
+    router.push(q ? `${ROUTES.EVENTS}?q=${encodeURIComponent(q)}` : ROUTES.EVENTS)
+  }
+
+  const loadNotifications = async () => {
+    if (!isAuthenticated) return
+    try {
+      setIsNotificationsLoading(true)
+      const response = await fetch('/api/notifications?limit=8', { cache: 'no-store' })
+      if (!response.ok) throw new Error('Failed to load notifications')
+      const data = await response.json()
+      setNotifications(data?.data?.notifications || [])
+    } catch (error) {
+      console.error('Failed to load notifications', error)
+      setNotifications([])
+    } finally {
+      setIsNotificationsLoading(false)
+    }
+  }
+
+  const markNotificationRead = async (notificationId: string) => {
+    try {
+      await fetch(`/api/notifications/${notificationId}`, { method: 'PUT' })
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notificationId ? { ...n, status: 'read' } : n)),
+      )
+    } catch (error) {
+      console.error('Failed to mark notification as read', error)
+    }
+  }
 
   return (
     <nav className="sticky top-0 z-50 bg-card/80 backdrop-blur-xl border-b border-border/60">
@@ -111,13 +150,82 @@ export function Navbar() {
               <div className="h-8 w-8 animate-pulse rounded-full bg-muted" />
             ) : isAuthenticated && user ? (
               <>
-                <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground hover:text-foreground">
-                  <Search className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground hover:text-foreground">
-                  <Bell className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground hover:text-foreground">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground hover:text-foreground">
+                      <Search className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-80 p-3">
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Search events</p>
+                      <div className="flex gap-2">
+                        <Input
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          placeholder="Event name or keyword"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault()
+                              handleSearchSubmit()
+                            }
+                          }}
+                        />
+                        <Button size="sm" onClick={handleSearchSubmit}>Go</Button>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+
+                <Popover
+                  onOpenChange={(open) => {
+                    if (open) void loadNotifications()
+                  }}
+                >
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="icon" className="relative rounded-full text-muted-foreground hover:text-foreground">
+                      <Bell className="h-4 w-4" />
+                      {unreadCount > 0 && (
+                        <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500" />
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-96 p-2">
+                    <div className="px-2 py-1.5">
+                      <p className="text-sm font-medium">Notifications</p>
+                    </div>
+                    {isNotificationsLoading ? (
+                      <p className="px-2 py-4 text-sm text-muted-foreground">Loading notifications...</p>
+                    ) : notifications.length === 0 ? (
+                      <p className="px-2 py-4 text-sm text-muted-foreground">No notifications yet.</p>
+                    ) : (
+                      <div className="max-h-80 space-y-1 overflow-auto">
+                        {notifications.map((n) => (
+                          <button
+                            key={n.id}
+                            type="button"
+                            className={`w-full rounded-md px-2 py-2 text-left hover:bg-muted ${
+                              n.status !== 'read' ? 'bg-muted/40' : ''
+                            }`}
+                            onClick={() => {
+                              if (n.status !== 'read') void markNotificationRead(n.id)
+                            }}
+                          >
+                            <p className="text-sm font-medium capitalize">{(n.type || 'notification').replaceAll('_', ' ')}</p>
+                            <p className="line-clamp-2 text-xs text-muted-foreground">{n.content || 'You have an update.'}</p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </PopoverContent>
+                </Popover>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full text-muted-foreground hover:text-foreground"
+                  onClick={() => router.push(ROUTES.PROFILE)}
+                >
                   <Settings className="h-4 w-4" />
                 </Button>
                 <div className="mx-1 h-6 w-px bg-border" />

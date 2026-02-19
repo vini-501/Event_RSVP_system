@@ -37,7 +37,7 @@ export async function PUT(
     const { eventId } = await params;
     const body = await parseRequestBody(request, updateEventSchema);
 
-    const event = await updateEvent(eventId, auth.userId, body as Record<string, any>);
+    const event = await updateEvent(eventId, auth.userId, body as Record<string, any>, auth.role);
     return successResponse(event, 'Event updated successfully');
   } catch (error) {
     const { status, body } = handleApiError(error);
@@ -59,7 +59,7 @@ export async function DELETE(
     requireRole(auth, 'organizer');
 
     const { eventId } = await params;
-    await deleteEvent(eventId, auth.userId);
+    await deleteEvent(eventId, auth.userId, auth.role);
 
     return successResponse(null, 'Event deleted successfully');
   } catch (error) {

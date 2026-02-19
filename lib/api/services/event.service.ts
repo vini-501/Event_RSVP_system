@@ -1,5 +1,5 @@
-import { createClient } from '@/lib/supabase/server';
-import { NotFoundError } from '../utils/errors';
+import { createAdminClient, createClient } from '@/lib/supabase/server';
+import { ForbiddenError, NotFoundError } from '../utils/errors';
 
 /**
  * Get events with filtering and pagination
@@ -12,7 +12,9 @@ export async function getEvents(
     limit?: number;
   }
 ) {
-  const supabase = await createClient();
+  // Public event listing should not depend on caller-specific RLS.
+  // We still explicitly restrict to published events.
+  const supabase = await createAdminClient();
   let query = supabase
     .from('events')
     .select('*, profiles!organizer_id(id, first_name, last_name, email, avatar_url)', { count: 'exact' })
@@ -110,13 +112,14 @@ export async function createEvent(
 export async function updateEvent(
   eventId: string,
   organizerId: string,
-  data: Record<string, any>
+  data: Record<string, any>,
+  actorRole: string = 'organizer'
 ) {
   const supabase = await createClient();
 
   // Check ownership
   const event = await getEventById(eventId);
-  if (event.organizer_id !== organizerId) {
+  if (actorRole !== 'admin' && event.organizer_id !== organizerId) {
     throw new Error('Not authorized to update this event');
   }
 
@@ -137,16 +140,30 @@ export async function updateEvent(
 /**
  * Delete an event
  */
-export async function deleteEvent(eventId: string, organizerId: string) {
-  const supabase = await createClient();
+export async function deleteEvent(
+  eventId: string,
+  organizerId: string,
+  actorRole: string = 'organizer'
+) {
+  const supabase = actorRole === 'admin'
+    ? await createAdminClient()
+    : await createClient();
 
   const event = await getEventById(eventId);
-  if (event.organizer_id !== organizerId) {
-    throw new Error('Not authorized to delete this event');
+  if (actorRole !== 'admin' && event.organizer_id !== organizerId) {
+    throw new ForbiddenError('Not authorized to delete this event');
   }
 
-  const { error } = await supabase.from('events').delete().eq('id', eventId);
+  const { data: deletedRows, error } = await supabase
+    .from('events')
+    .delete()
+    .eq('id', eventId)
+    .select('id');
+
   if (error) throw error;
+  if (!deletedRows || deletedRows.length === 0) {
+    throw new ForbiddenError('Delete operation was blocked by database policy');
+  }
 }
 
 /**

@@ -18,37 +18,20 @@ export default function OrganizerEventsPage() {
 
   useEffect(() => {
     const fetchEvents = async () => {
-      if (!user?.id) return
+      if (!user?.id) {
+        setEvents([])
+        setIsLoading(false)
+        return
+      }
 
       try {
-        // Fetch all events created by this organizer
-        // Note: The API currently returns all published events or filtered events
-        // Ideally we'd have a specific endpoint for organizer events or filter by organizer_id
-        // For now, we'll fetch from /api/events and filter client-side if needed, 
-        // or rely on the API to return relevant events if we update it.
-        // Let's assume we need to filter by current user's ID match on organizer_id
-        // But /api/events GET doesn't strictly filter by organizer unless we add a param.
-        // Let's rely on the fact that for now we might fetch all and filter in UI 
-        // or add a query param if backend supports it.
-        // Actually, let's look at the backend service... getEvents filters by 'published' status by default.
-        // We probably need a way to see Drafting events too.
-        // Since we can't easily change the backend right this second without reading it again,
-        // let's try fetching and see what we get.
-        // Wait, I recall `getEvents` filters by `status='published'`. 
-        // We need a way to get *my* events regardless of status.
-        // Let's try fetching with a high limit.
-        const response = await fetch('/api/events?limit=100')
+        setIsLoading(true)
+        setError(null)
+        const response = await fetch('/api/organizer/events', { cache: 'no-store' })
         if (!response.ok) throw new Error('Failed to fetch events')
         
         const data = await response.json()
-        const allEvents = data.data?.events || []
-        
-        // Filter for events where creator is current user
-        // The API returns profiles!organizer_id embedded. 
-        // We can check event.organizer_id === user.id
-        const myEvents = allEvents.filter((e: any) => e.organizer_id === user.id)
-        
-        setEvents(myEvents)
+        setEvents(data.data?.events || [])
       } catch (err) {
         console.error('Failed to load events', err)
         setError('Failed to load your events')

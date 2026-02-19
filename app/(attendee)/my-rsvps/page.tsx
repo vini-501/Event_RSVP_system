@@ -155,9 +155,11 @@ export default function MyRSVPsPage() {
                         <ArrowRight className="h-4 w-4" />
                       </Button>
                     </Link>
-                    <Button size="sm" variant="outline" className="w-full">
-                      Manage RSVP
-                    </Button>
+                    <Link href={ROUTES.EVENT_DETAILS(event.id)} className="w-full">
+                      <Button size="sm" variant="outline" className="w-full">
+                        Manage RSVP
+                      </Button>
+                    </Link>
                   </div>
                 </div>
               </Card>

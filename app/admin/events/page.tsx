@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -20,7 +20,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { MOCK_EVENTS } from '@/lib/mock-data'
+import { useToast } from '@/hooks/use-toast'
 
 const statusColors: Record<string, string> = {
   published: 'bg-primary/10 text-primary',
@@ -31,9 +31,63 @@ const statusColors: Record<string, string> = {
 
 export default function AdminEventsPage() {
   const router = useRouter()
+  const { toast } = useToast()
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [events, setEvents] = useState(MOCK_EVENTS)
+  const [events, setEvents] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isDeleting, setIsDeleting] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        setIsLoading(true)
+        const response = await fetch('/api/admin/events', { cache: 'no-store' })
+        if (!response.ok) {
+          throw new Error('Failed to fetch admin events')
+        }
+        const data = await response.json()
+        setEvents(data.data?.events || [])
+      } catch (error) {
+        console.error('Failed to fetch admin events', error)
+        toast({
+          title: 'Failed to load events',
+          description: 'Please refresh and try again.',
+          variant: 'destructive',
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchEvents()
+  }, [toast])
+
+  const handleDeleteEvent = async (eventId: string, eventName: string) => {
+    const ok = window.confirm(`Delete "${eventName}"?`)
+    if (!ok) return
+
+    try {
+      setIsDeleting(eventId)
+      const response = await fetch(`/api/events/${eventId}`, { method: 'DELETE' })
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData?.error?.message || 'Failed to delete event')
+      }
+
+      setEvents((prev) => prev.filter((e) => e.id !== eventId))
+      toast({ title: 'Event deleted' })
+    } catch (error: any) {
+      console.error('Delete event failed', error)
+      toast({
+        title: 'Delete failed',
+        description: error?.message || 'Could not delete this event.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsDeleting(null)
+    }
+  }
 
   const filteredEvents = events.filter((event) => {
     const matchesSearch = event.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -89,6 +143,9 @@ export default function AdminEventsPage() {
         {/* Events Table */}
         <Card className="border-border/60 overflow-hidden">
           <div className="overflow-x-auto">
+            {isLoading ? (
+              <div className="p-10 text-center text-sm text-muted-foreground">Loading events...</div>
+            ) : (
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border/60 bg-muted/30">
@@ -182,9 +239,8 @@ export default function AdminEventsPage() {
                             <DropdownMenuItem
                               className="gap-2 text-red-600"
                               onSelect={() => {
-                                const ok = window.confirm(`Delete "${event.name}"?`)
-                                if (!ok) return
-                                setEvents((prev) => prev.filter((e) => e.id !== event.id))
+                                if (isDeleting) return
+                                void handleDeleteEvent(event.id, event.name)
                               }}
                             >
                               <Trash2 className="h-3.5 w-3.5" /> Delete Event
@@ -197,8 +253,9 @@ export default function AdminEventsPage() {
                 })}
               </tbody>
             </table>
+            )}
           </div>
-          {filteredEvents.length === 0 && (
+          {!isLoading && filteredEvents.length === 0 && (
             <div className="p-12 text-center">
               <Calendar className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
               <p className="text-muted-foreground">No events found matching your criteria</p>
