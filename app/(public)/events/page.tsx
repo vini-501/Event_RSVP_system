@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import { useSearchParams } from 'next/navigation'
 import { Search, Filter, MapPin, Calendar, Loader2, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -17,7 +16,6 @@ import { EventCard } from '@/components/events/event-card'
 import { EVENT_CATEGORIES } from '@/lib/constants'
 
 export default function EventsPage() {
-  const searchParams = useSearchParams()
   const [events, setEvents] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -27,9 +25,10 @@ export default function EventsPage() {
   const [sortBy, setSortBy] = useState<'upcoming' | 'popular'>('upcoming')
 
   useEffect(() => {
-    const q = searchParams.get('q') || ''
+    const params = new URLSearchParams(window.location.search)
+    const q = params.get('q') || ''
     setSearchTerm(q)
-  }, [searchParams])
+  }, [])
 
   useEffect(() => {
     const fetchEvents = async () => {
