@@ -43,7 +43,7 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="relative overflow-hidden">
         {/* Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-primary/10" />
+        <div className="absolute inset-0 bg-linear-to-br from-primary/5 via-background to-primary/10" />
         <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-primary/10 blur-3xl" />
         <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-primary/5 blur-3xl" />
 
@@ -54,7 +54,7 @@ export default function HomePage() {
             </div>
             <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
               Manage events{' '}
-              <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+              <span className="bg-linear-to-r from-primary to-primary/60 bg-clip-text text-transparent">
                 effortlessly
               </span>
             </h1>
@@ -125,7 +125,7 @@ export default function HomePage() {
             Ready to create your next event?
           </h2>
           <p className="text-lg text-muted-foreground mb-8 max-w-xl mx-auto">
-            Join thousands of organizers who use EventHub to create memorable experiences.
+            Join thousands of organizers who use EventEase to create memorable experiences.
           </p>
           <Link href={ROUTES.SIGNUP}>
             <Button size="lg" className="rounded-xl shadow-lg shadow-primary/25 px-8">

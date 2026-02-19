@@ -78,10 +78,13 @@ export function Navbar() {
           {/* Logo */}
           <Link href={ROUTES.HOME} className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary shadow-md shadow-primary/25">
-              <span className="text-sm font-bold text-primary-foreground">E</span>
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <path d="M10 1L18 5.5V14.5L10 19L2 14.5V5.5L10 1Z" fill="#6d28d9" />
+                <path d="M6.5 10L9 12.5L14 8" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
             </div>
             <span className="hidden text-lg font-bold text-foreground sm:inline">
-              EventHub
+              EventEase
             </span>
           </Link>
 
@@ -181,18 +184,11 @@ export function Navbar() {
                 </DropdownMenu>
               </>
             ) : (
-              <div className="flex items-center gap-2">
-                <Link href={ROUTES.LOGIN}>
-                  <Button variant="ghost" size="sm" className="rounded-full">
-                    Login
-                  </Button>
-                </Link>
-                <Link href={ROUTES.SIGNUP}>
-                  <Button size="sm" className="rounded-full shadow-md shadow-primary/25">
-                    Sign Up
-                  </Button>
-                </Link>
-              </div>
+              <Link href={ROUTES.LOGIN}>
+                <Button size="sm" className="rounded-full shadow-md shadow-primary/25">
+                  Login
+                </Button>
+              </Link>
             )}
           </div>
 
@@ -263,18 +259,11 @@ export function Navbar() {
                   </Button>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  <Link href={ROUTES.LOGIN} className="block" onClick={() => setIsOpen(false)}>
-                    <Button variant="outline" size="sm" className="w-full rounded-xl">
-                      Login
-                    </Button>
-                  </Link>
-                  <Link href={ROUTES.SIGNUP} className="block" onClick={() => setIsOpen(false)}>
-                    <Button size="sm" className="w-full rounded-xl">
-                      Sign Up
-                    </Button>
-                  </Link>
-                </div>
+                <Link href={ROUTES.LOGIN} className="block" onClick={() => setIsOpen(false)}>
+                  <Button size="sm" className="w-full rounded-xl">
+                    Login
+                  </Button>
+                </Link>
               )}
             </div>
           </div>

@@ -78,7 +78,7 @@ export function SignupForm() {
 
   return (
     <Card className="w-full max-w-md overflow-hidden">
-      <div className="h-1 bg-gradient-to-r from-primary to-primary/40" />
+      <div className="h-1 bg-linear-to-r from-primary to-primary/40" />
       <div className="p-8">
         <h1 className="mb-2 text-2xl font-bold text-foreground">
           Create Account

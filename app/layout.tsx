@@ -9,7 +9,7 @@ const geist = Geist({ subsets: ["latin"] });
 const geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'EventHub - Discover and Manage Events',
+  title: 'EventEase - Discover and Manage Events',
   description: 'Create events, manage RSVPs, and connect with your community',
   generator: 'v0.app',
   icons: {

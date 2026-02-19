@@ -1,16 +1,9 @@
-import { Navbar } from '@/components/navigation/navbar'
-
 export default function AuthLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <main className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        {children}
-      </main>
-    </div>
-  )
+  // Login page handles its own full-screen layout with split panel design.
+  // Other auth pages (signup, reset-password) get a centered card layout.
+  return <>{children}</>
 }
