@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Eye, EyeOff } from 'lucide-react'
+import { ArrowLeft, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '@/lib/auth-context'
 import { ROUTES } from '@/lib/constants'
 import { createClient } from '@/lib/supabase/client'
@@ -120,6 +120,7 @@ export function LoginForm() {
     <>
       <div className="lf-outer">
         <Link href={ROUTES.HOME} className="lf-home-btn" aria-label="Go to home">
+          <ArrowLeft size={16} />
           Home
         </Link>
         {/* ── Left panel: hero image ── */}
@@ -336,21 +337,23 @@ export function LoginForm() {
           z-index: 60;
           display: inline-flex;
           align-items: center;
-          gap: 0.35rem;
-          padding: 0.45rem 0.85rem;
-          border-radius: 9999px;
-          border: 1.5px solid #16a34a;
-          background: linear-gradient(90deg, #22c55e, #16a34a);
-          color: white;
-          font-size: 0.82rem;
+          gap: 0.5rem;
+          padding: 0.55rem 0.85rem;
+          border-radius: 14px;
+          border: 1.5px solid rgba(34,197,94,0.35);
+          background: rgba(34,197,94,0.14);
+          color: #166534;
+          font-size: 0.85rem;
           font-weight: 600;
           text-decoration: none;
-          box-shadow: 0 6px 18px rgba(22,163,74,0.25);
-          transition: transform 0.1s, box-shadow 0.15s, background 0.15s;
+          box-shadow: 0 6px 18px rgba(16,185,129,0.15);
+          transition: transform 0.1s, box-shadow 0.15s, background 0.15s, border-color 0.15s;
         }
 
         .lf-home-btn:hover {
-          box-shadow: 0 10px 26px rgba(22,163,74,0.35);
+          background: rgba(34,197,94,0.20);
+          border-color: rgba(34,197,94,0.55);
+          box-shadow: 0 10px 26px rgba(16,185,129,0.22);
           transform: translateY(-1px);
         }
 

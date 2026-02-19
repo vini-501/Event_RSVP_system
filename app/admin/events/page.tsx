@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -29,10 +30,12 @@ const statusColors: Record<string, string> = {
 }
 
 export default function AdminEventsPage() {
+  const router = useRouter()
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [events, setEvents] = useState(MOCK_EVENTS)
 
-  const filteredEvents = MOCK_EVENTS.filter((event) => {
+  const filteredEvents = events.filter((event) => {
     const matchesSearch = event.name.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === 'all' || event.status === statusFilter
     return matchesSearch && matchesStatus
@@ -52,7 +55,7 @@ export default function AdminEventsPage() {
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Calendar className="h-4 w-4" />
-            {MOCK_EVENTS.length} total events
+            {events.length} total events
           </div>
         </div>
 
@@ -143,16 +146,47 @@ export default function AdminEventsPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem className="gap-2">
+                            <DropdownMenuItem
+                              className="gap-2"
+                              onSelect={() => {
+                                router.push(`/events/${event.id}`)
+                              }}
+                            >
                               <Eye className="h-3.5 w-3.5" /> View Event
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="gap-2">
+                            <DropdownMenuItem
+                              className="gap-2"
+                              onSelect={() => {
+                                router.push(`/organizer/events/${event.id}/attendees`)
+                              }}
+                            >
                               <Users className="h-3.5 w-3.5" /> View Attendees
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="gap-2 text-amber-600">
+                            <DropdownMenuItem
+                              className="gap-2 text-amber-600"
+                              onSelect={() => {
+                                setEvents((prev) =>
+                                  prev.map((e) =>
+                                    e.id === event.id
+                                      ? {
+                                          ...e,
+                                          status: e.status === 'cancelled' ? 'published' : 'cancelled',
+                                        }
+                                      : e,
+                                  ),
+                                )
+                              }}
+                            >
                               <Ban className="h-3.5 w-3.5" /> Suspend Event
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="gap-2 text-red-600">
+                            <DropdownMenuItem
+                              className="gap-2 text-red-600"
+                              onSelect={() => {
+                                const ok = window.confirm(`Delete "${event.name}"?`)
+                                if (!ok) return
+                                setEvents((prev) => prev.filter((e) => e.id !== event.id))
+                              }}
+                            >
                               <Trash2 className="h-3.5 w-3.5" /> Delete Event
                             </DropdownMenuItem>
                           </DropdownMenuContent>

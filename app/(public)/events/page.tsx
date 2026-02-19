@@ -66,9 +66,9 @@ export default function EventsPage() {
     // Sort
     if (sortBy === 'popular') {
       // Use waitlist/attendee count for popularity if available, otherwise fallback
-      filtered.sort((a, b) => (b.current_attendees || 0) - (a.current_attendees || 0))
+      filtered.sort((a, b) => (b.currentAttendees || 0) - (a.currentAttendees || 0))
     } else {
-      filtered.sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime())
+      filtered.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
     }
 
     return filtered

@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
+import { useParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -17,14 +18,12 @@ import { AttendeeList } from '@/components/organizer/attendee-list'
 import { mockEvents, mockRsvps, mockUsers } from '@/lib/mock-data'
 import { ArrowLeft, Download, Search } from 'lucide-react'
 
-export default function AttendeesPage({
-  params,
-}: {
-  params: Promise<{ eventId: string }>
-}) {
-  const paramsData = Array.isArray(params) ? params[0] : params
-  const event = mockEvents.find((e) => e.id === paramsData?.eventId)
-  const eventRsvps = mockRsvps.filter((r) => r.eventId === paramsData?.eventId)
+export default function AttendeesPage() {
+  const params = useParams<{ eventId: string }>()
+  const eventId = params?.eventId
+
+  const event = mockEvents.find((e) => e.id === eventId)
+  const eventRsvps = mockRsvps.filter((r) => r.eventId === eventId)
   const confirmedRsvps = eventRsvps.filter((r) => !r.isWaitlisted)
   const waitlistedRsvps = eventRsvps.filter((r) => r.isWaitlisted)
 

@@ -95,7 +95,7 @@ export async function createEvent(
       organizer_id: organizerId,
       tags: data.tags,
       price: data.price,
-      status: 'draft',
+      status: 'published',
     })
     .select()
     .single();
