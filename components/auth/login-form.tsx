@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -40,7 +40,6 @@ export function LoginForm() {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [socialLoading, setSocialLoading] = useState<string | null>(null)
   const router = useRouter()
-  const searchParams = useSearchParams()
   const { login, signup, isLoading } = useAuth()
 
   const loginForm = useForm<LoginValues>({
@@ -62,8 +61,9 @@ export function LoginForm() {
   }
 
   useEffect(() => {
-    const oauthError = searchParams.get('error')
-    const oauthErrorDescription = searchParams.get('error_description')
+    const params = new URLSearchParams(window.location.search)
+    const oauthError = params.get('error')
+    const oauthErrorDescription = params.get('error_description')
     if (!oauthError) return
 
     if (oauthErrorDescription) {
@@ -77,7 +77,7 @@ export function LoginForm() {
     }
 
     setSubmitError(oauthError.replace(/_/g, ' '))
-  }, [searchParams])
+  }, [])
 
   const redirectByRole = async () => {
     const supabase = createClient()
