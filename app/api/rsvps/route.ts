@@ -5,8 +5,6 @@ import { parseRequestBody } from '@/lib/api/middleware/validation';
 import { createRsvpSchema } from '@/lib/api/utils/validators';
 import { requireAuth } from '@/lib/api/middleware/auth';
 import { getUserRsvps, createRsvp } from '@/lib/api/services/rsvp.service';
-import { generateTicket } from '@/lib/api/services/ticket.service';
-import { sendRsvpConfirmation } from '@/lib/api/services/notification.service';
 
 export async function GET(request: NextRequest) {
   try {
@@ -47,22 +45,9 @@ export async function POST(request: NextRequest) {
       dietaryPreferences: body.dietaryPreferences,
     });
 
-    // Generate ticket if RSVP is confirmed (not waitlisted)
-    let ticket = null;
-    if (rsvp.status === 'going' && !rsvp.is_waitlisted) {
-      ticket = await generateTicket(rsvp.id);
-    }
-
-    // Send confirmation notification
-    try {
-      await sendRsvpConfirmation(rsvp.id);
-    } catch (notificationError) {
-      console.error('[v0] Failed to send notification:', notificationError);
-    }
-
     return successResponse(
-      { rsvp, ticket },
-      rsvp.is_waitlisted ? 'RSVP submitted - added to waitlist' : 'RSVP created successfully',
+      { rsvp },
+      'RSVP submitted and pending admin approval',
       201
     );
   } catch (error) {

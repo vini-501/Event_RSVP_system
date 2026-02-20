@@ -24,7 +24,7 @@ const signupSchema = z
     email: z.string().email('Enter a valid email'),
     password: z.string().min(6, 'At least 6 characters'),
     confirmPassword: z.string(),
-    role: z.enum(['attendee', 'organizer', 'admin']),
+    role: z.enum(['attendee', 'organizer']),
   })
   .refine((d) => d.password === d.confirmPassword, {
     message: "Passwords don't match",
@@ -62,12 +62,25 @@ export function LoginForm() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
+    const modeParam = params.get('mode')
+    if (modeParam === 'signup') {
+      setMode('signup')
+    }
     const oauthError = params.get('error')
     const oauthErrorDescription = params.get('error_description')
     if (!oauthError) return
 
     if (oauthErrorDescription) {
-      setSubmitError(oauthErrorDescription)
+      const normalized = oauthErrorDescription.toLowerCase()
+      if (
+        normalized.includes('invalid login credentials') ||
+        normalized.includes('scan error') ||
+        normalized.includes('unable to fetch records')
+      ) {
+        setSubmitError('No account found for this email. Please create an account.')
+      } else {
+        setSubmitError(oauthErrorDescription)
+      }
       return
     }
 
@@ -79,22 +92,13 @@ export function LoginForm() {
     setSubmitError(oauthError.replace(/_/g, ' '))
   }, [])
 
-  const redirectByRole = async () => {
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.push(ROUTES.EVENTS); return }
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-    const role = profile?.role || user.user_metadata?.role || 'attendee'
-    if (role === 'admin') router.push(ROUTES.ADMIN_DASHBOARD)
-    else if (role === 'organizer') router.push(ROUTES.ORGANIZER_DASHBOARD)
-    else router.push(ROUTES.EVENTS)
-  }
-
   const onLogin = async (data: LoginValues) => {
     setSubmitError(null)
     try {
-      await login(data.email, data.password)
-      await redirectByRole()
+      const role = await login(data.email, data.password)
+      if (role === 'admin') router.push(ROUTES.ADMIN_DASHBOARD)
+      else if (role === 'organizer') router.push(ROUTES.ORGANIZER_DASHBOARD)
+      else router.push(ROUTES.EVENTS)
     } catch (e) {
       setSubmitError(e instanceof Error ? e.message : 'Invalid email or password')
     }
@@ -104,8 +108,7 @@ export function LoginForm() {
     setSubmitError(null)
     try {
       await signup(data.email, data.password, data.name, data.role)
-      if (data.role === 'admin') router.push(ROUTES.ADMIN_DASHBOARD)
-      else if (data.role === 'organizer') router.push(ROUTES.ORGANIZER_DASHBOARD)
+      if (data.role === 'organizer') router.push(ROUTES.ORGANIZER_DASHBOARD)
       else router.push(ROUTES.EVENTS)
     } catch (e) {
       setSubmitError(e instanceof Error ? e.message : 'Failed to create account')
@@ -290,7 +293,7 @@ export function LoginForm() {
               {/* Role selection */}
               <Field label="I am a...">
                 <div className="lf-roles">
-                  {roles.map(r => (
+                  {roles.filter((r) => r.value !== 'admin').map(r => (
                     <label key={r.value} className="lf-role-label">
                       <input type="radio" value={r.value} {...signupForm.register('role')} className="sr-only" />
                       <span className={`lf-role-chip ${signupForm.watch('role') === r.value ? 'lf-role-active' : ''}`}>

@@ -30,12 +30,14 @@ const organizerNavItems = [
 ]
 
 const attendeeNavItems = [
+  { label: 'Events', href: ROUTES.EVENTS },
   { label: 'My RSVPs', href: ROUTES.MY_RSVPS },
   { label: 'Tickets', href: '/my-tickets' },
 ]
 
 const adminNavItems = [
   { label: 'Dashboard', href: '/admin/dashboard' },
+  { label: 'RSVP Approvals', href: ROUTES.ADMIN_RSVPS },
   { label: 'Users', href: '/admin/users' },
   { label: 'Events', href: '/admin/events' },
 ]
@@ -49,9 +51,10 @@ export function Navbar() {
   const router = useRouter()
   const pathname = usePathname()
 
-  const handleLogout = async () => {
-    await logout()
-    router.push(ROUTES.HOME)
+  const handleLogout = () => {
+    void logout()
+    router.replace(ROUTES.HOME)
+    router.refresh()
   }
 
   const getInitials = (name: string) => {
@@ -75,6 +78,12 @@ export function Navbar() {
           ? organizerNavItems
           : attendeeNavItems)
     : publicNavItems
+  const dashboardRoute =
+    user?.role === 'admin'
+      ? ROUTES.ADMIN_DASHBOARD
+      : user?.role === 'organizer'
+        ? ROUTES.ORGANIZER_DASHBOARD
+        : ROUTES.EVENTS
 
   const unreadCount = notifications.filter((n) => n.status !== 'read').length
 
@@ -122,7 +131,7 @@ export function Navbar() {
                 <path d="M6.5 10L9 12.5L14 8" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
-            <span className="hidden text-lg font-bold text-foreground sm:inline">
+            <span className="inline text-base font-bold text-foreground sm:text-lg">
               EventEase
             </span>
           </Link>
@@ -254,7 +263,7 @@ export function Navbar() {
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
-                      <Link href={ROUTES.ORGANIZER_DASHBOARD} className="flex items-center gap-2 cursor-pointer">
+                      <Link href={dashboardRoute} className="flex items-center gap-2 cursor-pointer">
                         Dashboard
                       </Link>
                     </DropdownMenuItem>
@@ -300,18 +309,27 @@ export function Navbar() {
             )}
           </div>
 
-          {/* Mobile Menu Button */}
-          <button
-            className="md:hidden rounded-lg p-2 hover:bg-muted/60 transition-colors"
-            onClick={() => setIsOpen(!isOpen)}
-            aria-label="Toggle menu"
-          >
-            {isOpen ? (
-              <X className="h-5 w-5" />
-            ) : (
-              <Menu className="h-5 w-5" />
+          {/* Mobile Actions */}
+          <div className="flex items-center gap-2 md:hidden">
+            {!isAuthenticated && (
+              <Link href={ROUTES.LOGIN}>
+                <Button size="sm" className="rounded-full px-4 shadow-md shadow-primary/25">
+                  Login
+                </Button>
+              </Link>
             )}
-          </button>
+            <button
+              className="rounded-lg p-2 transition-colors hover:bg-muted/60"
+              onClick={() => setIsOpen(!isOpen)}
+              aria-label="Toggle menu"
+            >
+              {isOpen ? (
+                <X className="h-5 w-5" />
+              ) : (
+                <Menu className="h-5 w-5" />
+              )}
+            </button>
+          </div>
         </div>
       </div>
 

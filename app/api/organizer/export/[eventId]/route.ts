@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { handleApiError } from '@/lib/api/utils/errors';
 import { requireAuth } from '@/lib/api/middleware/auth';
+import { requireRole } from '@/lib/api/middleware/rbac';
 import { exportAttendeeList } from '@/lib/api/services/organizer.service';
 
 export async function GET(
@@ -9,6 +10,7 @@ export async function GET(
 ) {
   try {
     const auth = await requireAuth(request);
+    requireRole(auth, 'organizer');
     const { eventId } = await params;
 
     const csv = await exportAttendeeList(eventId, auth.userId);

@@ -1,6 +1,12 @@
 import { createBrowserClient } from '@supabase/ssr'
 
+let browserClient: ReturnType<typeof createBrowserClient> | null = null
+
 export function createClient() {
+  if (browserClient) {
+    return browserClient
+  }
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
@@ -11,7 +17,6 @@ export function createClient() {
     console.error('[Supabase] ERROR: NEXT_PUBLIC_SUPABASE_ANON_KEY is not configured!')
   }
 
-  console.log('[Supabase] Creating client with URL:', supabaseUrl?.substring(0, 30) + '...')
-
-  return createBrowserClient(supabaseUrl, supabaseAnonKey)
+  browserClient = createBrowserClient(supabaseUrl, supabaseAnonKey)
+  return browserClient
 }

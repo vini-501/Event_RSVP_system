@@ -1,11 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import {
   Select,
   SelectContent,
@@ -13,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Users, Search, Shield, MoreVertical, Mail, Calendar, Eye, UserCog, UserX } from 'lucide-react'
+import { Users, Search, Shield, MoreVertical, Mail, Calendar, Eye, UserCog } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,72 +20,132 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useToast } from '@/hooks/use-toast'
+import { createClient } from '@/lib/supabase/client'
 
-const mockUsers = [
-  { id: '1', name: 'Sarah Johnson', email: 'sarah@example.com', role: 'organizer', status: 'active', joinedAt: '2025-11-15', events: 8 },
-  { id: '2', name: 'John Doe', email: 'john@example.com', role: 'attendee', status: 'active', joinedAt: '2025-12-01', events: 0 },
-  { id: '3', name: 'Emily Chen', email: 'emily@example.com', role: 'organizer', status: 'active', joinedAt: '2025-10-20', events: 12 },
-  { id: '4', name: 'Admin User', email: 'admin@eventhub.com', role: 'admin', status: 'active', joinedAt: '2025-09-01', events: 0 },
-  { id: '5', name: 'Mike Wilson', email: 'mike@example.com', role: 'attendee', status: 'active', joinedAt: '2026-01-05', events: 0 },
-  { id: '6', name: 'Lisa Park', email: 'lisa@example.com', role: 'attendee', status: 'suspended', joinedAt: '2025-11-28', events: 0 },
-  { id: '7', name: 'Tom Harris', email: 'tom@events.com', role: 'organizer', status: 'active', joinedAt: '2026-01-10', events: 3 },
-  { id: '8', name: 'Amy Roberts', email: 'amy@example.com', role: 'attendee', status: 'active', joinedAt: '2026-02-01', events: 0 },
-]
+type UserRole = 'attendee' | 'organizer' | 'admin'
 
-const roleBadge: Record<string, string> = {
+type AdminUser = {
+  id: string
+  name: string
+  email: string
+  role: UserRole
+  status: 'active'
+  joinedAt: string
+  events: number
+}
+
+const roleBadge: Record<UserRole, string> = {
   attendee: 'bg-primary/10 text-primary border-primary/20',
   organizer: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
   admin: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
 }
 
-const statusBadge: Record<string, string> = {
+const statusBadge: Record<'active', string> = {
   active: 'bg-emerald-500/10 text-emerald-600',
-  suspended: 'bg-red-500/10 text-red-600',
 }
 
 export default function AdminUsersPage() {
   const router = useRouter()
   const { toast } = useToast()
+  const supabase = useMemo(() => createClient(), [])
   const [searchTerm, setSearchTerm] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
-  const [users, setUsers] = useState(mockUsers)
+  const [users, setUsers] = useState<AdminUser[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [roleUpdatingUserId, setRoleUpdatingUserId] = useState<string | null>(null)
 
-  const cycleRole = (role: string) => {
+  const fetchUsers = useCallback(async () => {
+    try {
+      setIsLoading(true)
+      const response = await fetch('/api/admin/users', { cache: 'no-store' })
+      if (!response.ok) {
+        throw new Error('Failed to fetch admin users')
+      }
+
+      const data = await response.json()
+      setUsers(data.data?.users || [])
+    } catch (error) {
+      console.error('Failed to fetch admin users', error)
+      toast({
+        title: 'Failed to load users',
+        description: 'Please refresh and try again.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }, [toast])
+
+  useEffect(() => {
+    void fetchUsers()
+  }, [fetchUsers])
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-users-profiles')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles' },
+        () => {
+          void fetchUsers()
+        },
+      )
+      .subscribe()
+
+    return () => {
+      void supabase.removeChannel(channel)
+    }
+  }, [fetchUsers, supabase])
+
+  const cycleRole = (role: UserRole): UserRole => {
     if (role === 'attendee') return 'organizer'
     if (role === 'organizer') return 'admin'
     return 'attendee'
   }
 
-  const handleViewProfile = (user: (typeof mockUsers)[number]) => {
-    // Route to profile page while preserving target user context.
+  const handleViewProfile = (user: AdminUser) => {
     router.push(`/profile?user=${user.id}`)
   }
 
-  const handleChangeRole = (user: (typeof mockUsers)[number]) => {
-    const nextRole = cycleRole(user.role)
-    setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, role: nextRole } : u)))
-    toast({
-      title: 'Role updated',
-      description: `${user.name} is now ${nextRole}.`,
-    })
+  const handleChangeRole = async (user: AdminUser) => {
+    try {
+      const nextRole = cycleRole(user.role)
+      setRoleUpdatingUserId(user.id)
+      const response = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, role: nextRole }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData?.error?.message || 'Failed to update role')
+      }
+
+      setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, role: nextRole } : u)))
+      toast({
+        title: 'Role updated',
+        description: `${user.name} is now ${nextRole}.`,
+      })
+    } catch (error: any) {
+      console.error('Role update failed', error)
+      toast({
+        title: 'Role update failed',
+        description: error?.message || 'Could not update role.',
+        variant: 'destructive',
+      })
+    } finally {
+      setRoleUpdatingUserId(null)
+    }
   }
 
-  const handleSendEmail = (user: (typeof mockUsers)[number]) => {
+  const handleSendEmail = (user: AdminUser) => {
     const subject = encodeURIComponent('EventEase Admin Message')
     const body = encodeURIComponent(`Hi ${user.name},\n\n`)
     window.location.href = `mailto:${user.email}?subject=${subject}&body=${body}`
     toast({
       title: 'Opening email client',
       description: `Composing email to ${user.email}`,
-    })
-  }
-
-  const handleSuspendToggle = (user: (typeof mockUsers)[number]) => {
-    const nextStatus = user.status === 'active' ? 'suspended' : 'active'
-    setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, status: nextStatus } : u)))
-    toast({
-      title: nextStatus === 'suspended' ? 'User suspended' : 'User reactivated',
-      description: `${user.name} is now ${nextStatus}.`,
     })
   }
 
@@ -101,10 +160,9 @@ export default function AdminUsersPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <div className="flex items-center gap-2 mb-1">
+            <div className="mb-1 flex items-center gap-2">
               <Users className="h-5 w-5 text-primary" />
               <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">User Management</h1>
             </div>
@@ -116,20 +174,19 @@ export default function AdminUsersPage() {
           </div>
         </div>
 
-        {/* Filters */}
         <Card className="border-border/60 p-4">
           <div className="flex flex-col gap-3 sm:flex-row">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Search by name or email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 rounded-xl"
+                className="rounded-xl pl-10"
               />
             </div>
             <Select value={roleFilter} onValueChange={setRoleFilter}>
-              <SelectTrigger className="w-full sm:w-[180px] rounded-xl">
+              <SelectTrigger className="w-full rounded-xl sm:w-[180px]">
                 <SelectValue placeholder="Filter by role" />
               </SelectTrigger>
               <SelectContent>
@@ -142,81 +199,110 @@ export default function AdminUsersPage() {
           </div>
         </Card>
 
-        {/* Users Table */}
-        <Card className="border-border/60 overflow-hidden">
+        <Card className="overflow-hidden border-border/60">
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border/60 bg-muted/30">
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">User</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Role</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden sm:table-cell">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">Joined</th>
-                  <th className="px-6 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/60">
-                {filteredUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-muted/20 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-                          {user.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">{user.name}</p>
-                          <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Mail className="h-3 w-3" />
-                            {user.email}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${roleBadge[user.role]}`}>
-                        {user.role}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 hidden sm:table-cell">
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusBadge[user.status]}`}>
-                        {user.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 hidden md:table-cell">
-                      <span className="text-sm text-muted-foreground flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        {new Date(user.joinedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem className="gap-2" onSelect={() => handleViewProfile(user)}>
-                            <Eye className="h-3.5 w-3.5" /> View Profile
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2" onSelect={() => handleChangeRole(user)}>
-                            <UserCog className="h-3.5 w-3.5" /> Change Role
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2" onSelect={() => handleSendEmail(user)}>
-                            <Mail className="h-3.5 w-3.5" /> Send Email
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2 text-red-600" onSelect={() => handleSuspendToggle(user)}>
-                            <UserX className="h-3.5 w-3.5" /> {user.status === 'active' ? 'Suspend User' : 'Reactivate User'}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </td>
+            {isLoading ? (
+              <div className="p-10 text-center text-sm text-muted-foreground">Loading users...</div>
+            ) : (
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border/60 bg-muted/30">
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      User
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Role
+                    </th>
+                    <th className="hidden px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:table-cell">
+                      Status
+                    </th>
+                    <th className="hidden px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground md:table-cell">
+                      Joined
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Actions
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-border/60">
+                  {filteredUsers.map((user) => (
+                    <tr key={user.id} className="transition-colors hover:bg-muted/20">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                            {user.name
+                              .split(' ')
+                              .map((n) => n[0])
+                              .join('')
+                              .slice(0, 2)}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">{user.name}</p>
+                            <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Mail className="h-3 w-3" />
+                              {user.email}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${roleBadge[user.role]}`}
+                        >
+                          {user.role}
+                        </span>
+                      </td>
+                      <td className="hidden px-6 py-4 sm:table-cell">
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusBadge[user.status]}`}
+                        >
+                          {user.status}
+                        </span>
+                      </td>
+                      <td className="hidden px-6 py-4 md:table-cell">
+                        <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <Calendar className="h-3 w-3" />
+                          {new Date(user.joinedAt).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                          })}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 rounded-lg p-0">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem className="gap-2" onSelect={() => handleViewProfile(user)}>
+                              <Eye className="h-3.5 w-3.5" /> View Profile
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="gap-2"
+                              disabled={roleUpdatingUserId === user.id}
+                              onSelect={() => {
+                                if (roleUpdatingUserId) return
+                                void handleChangeRole(user)
+                              }}
+                            >
+                              <UserCog className="h-3.5 w-3.5" /> Change Role
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="gap-2" onSelect={() => handleSendEmail(user)}>
+                              <Mail className="h-3.5 w-3.5" /> Send Email
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
-          {filteredUsers.length === 0 && (
+          {!isLoading && filteredUsers.length === 0 && (
             <div className="p-12 text-center">
               <Users className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
               <p className="text-muted-foreground">No users found matching your criteria</p>

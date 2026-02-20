@@ -39,14 +39,14 @@ export function TicketQRCode({ rsvp, event }: TicketQRCodeProps) {
           </div>
 
           {/* Attendee Info */}
-          <div className="grid grid-cols-2 gap-4 mb-8">
+          <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <p className="text-sm text-muted-foreground">Attendee Name</p>
               <p className="font-semibold text-foreground">{rsvp.user?.name}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Email</p>
-              <p className="font-semibold text-foreground">{rsvp.user?.email}</p>
+              <p className="break-all font-semibold text-foreground">{rsvp.user?.email}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Number of Guests</p>
@@ -108,21 +108,21 @@ export function TicketQRCode({ rsvp, event }: TicketQRCodeProps) {
           Event Details
         </h3>
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-sm text-muted-foreground">Date</span>
             <span className="font-medium text-foreground">
               {format(event.startDate, 'EEEE, MMMM d, yyyy')}
             </span>
           </div>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-sm text-muted-foreground">Time</span>
             <span className="font-medium text-foreground">
               {format(event.startDate, 'h:mm a')}
             </span>
           </div>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-sm text-muted-foreground">Location</span>
-            <span className="font-medium text-foreground text-right">
+            <span className="font-medium text-foreground sm:text-right">
               {event.location}
             </span>
           </div>

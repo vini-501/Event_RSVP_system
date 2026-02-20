@@ -29,7 +29,7 @@ export async function extractAuth(request: NextRequest): Promise<AuthContext> {
   return {
     userId: user.id,
     email: user.email || '',
-    role: profile?.role || user.user_metadata?.role || 'attendee',
+    role: profile?.role || 'attendee',
     firstName: profile?.first_name || user.user_metadata?.first_name || '',
     lastName: profile?.last_name || user.user_metadata?.last_name || '',
   };

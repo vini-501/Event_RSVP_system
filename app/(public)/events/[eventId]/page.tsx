@@ -27,6 +27,7 @@ type EventDetails = {
 type Rsvp = {
   id: string
   status: 'going' | 'maybe' | 'not_going'
+  approval_status?: 'pending' | 'approved' | 'rejected'
 }
 
 export default function EventDetailsPage() {
@@ -80,7 +81,7 @@ export default function EventDetailsPage() {
         const data = await response.json().catch(() => ({}))
         const mine = data?.data?.rsvps?.[0]
         if (mine) {
-          setRsvp({ id: mine.id, status: mine.status })
+          setRsvp({ id: mine.id, status: mine.status, approval_status: mine.approval_status })
         } else {
           setRsvp(null)
         }
@@ -111,8 +112,17 @@ export default function EventDetailsPage() {
         })
         const data = await response.json().catch(() => ({}))
         if (!response.ok) throw new Error(data?.error?.message || 'Failed to update RSVP')
-        setRsvp((prev) => (prev ? { ...prev, status } : prev))
-        setRsvpMessage('Your RSVP was updated.')
+        const updated = data?.data
+        setRsvp((prev) =>
+          prev
+            ? {
+                ...prev,
+                status: updated?.status || status,
+                approval_status: updated?.approval_status || 'pending',
+              }
+            : prev
+        )
+        setRsvpMessage('Your RSVP was updated and is pending admin approval.')
         return
       }
 
@@ -124,8 +134,8 @@ export default function EventDetailsPage() {
       const data = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(data?.error?.message || 'Failed to submit RSVP')
       const created = data?.data?.rsvp
-      setRsvp({ id: created.id, status: created.status })
-      setRsvpMessage('Your RSVP was submitted.')
+      setRsvp({ id: created.id, status: created.status, approval_status: created.approval_status || 'pending' })
+      setRsvpMessage('Your RSVP was submitted and is pending admin approval.')
     } catch (err: any) {
       setRsvpMessage(err?.message || 'Failed to save RSVP')
     } finally {
@@ -160,6 +170,14 @@ export default function EventDetailsPage() {
         : rsvp?.status === 'not_going'
           ? 'Not Going'
           : 'Not Responded'
+  const approvalLabel =
+    rsvp?.approval_status === 'approved'
+      ? 'Approved'
+      : rsvp?.approval_status === 'rejected'
+        ? 'Rejected'
+        : rsvp?.approval_status === 'pending'
+          ? 'Pending Approval'
+          : null
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
@@ -218,6 +236,9 @@ export default function EventDetailsPage() {
         <Card className="p-5">
           <p className="text-sm font-medium mb-3">Your RSVP</p>
           <p className="text-sm text-muted-foreground mb-4">Current: {statusLabel}</p>
+          {approvalLabel && (
+            <p className="text-sm text-muted-foreground mb-4">Approval: {approvalLabel}</p>
+          )}
           <div className="grid gap-2 sm:grid-cols-3">
             <Button
               variant={rsvp?.status === 'going' ? 'default' : 'outline'}

@@ -1,6 +1,53 @@
 import { createClient } from '@/lib/supabase/server';
-import { ConflictError, NotFoundError } from '../utils/errors';
+import { ConflictError, ForbiddenError, NotFoundError } from '../utils/errors';
 import { checkEventCapacity, getEventById } from './event.service';
+
+const RSVP_APPROVAL_STATUSES = ['pending', 'approved', 'rejected'] as const;
+type RsvpApprovalStatus = (typeof RSVP_APPROVAL_STATUSES)[number];
+
+function getRsvpApprovalStatus(rsvp: any): RsvpApprovalStatus {
+  const metadata = rsvp?.custom_responses;
+  if (metadata && typeof metadata === 'object' && !Array.isArray(metadata)) {
+    const status = (metadata.approval_status || metadata.approvalStatus) as string | undefined;
+    if (status && RSVP_APPROVAL_STATUSES.includes(status as RsvpApprovalStatus)) {
+      return status as RsvpApprovalStatus;
+    }
+  }
+
+  // Legacy rows created before approval flow are treated as approved.
+  return 'approved';
+}
+
+function withRsvpApprovalStatus(rsvp: any) {
+  return {
+    ...rsvp,
+    approval_status: getRsvpApprovalStatus(rsvp),
+  };
+}
+
+function buildRsvpMetadata(
+  customResponses: any,
+  approvalStatus: RsvpApprovalStatus
+) {
+  if (customResponses && typeof customResponses === 'object' && !Array.isArray(customResponses)) {
+    return {
+      ...customResponses,
+      approval_status: approvalStatus,
+    };
+  }
+
+  if (Array.isArray(customResponses)) {
+    return {
+      answers: customResponses,
+      approval_status: approvalStatus,
+    };
+  }
+
+  return {
+    answers: [],
+    approval_status: approvalStatus,
+  };
+}
 
 /**
  * Get all RSVPs for a specific user
@@ -14,7 +61,7 @@ export async function getUserRsvps(userId: string) {
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return data || [];
+  return (data || []).map(withRsvpApprovalStatus);
 }
 
 /**
@@ -29,7 +76,7 @@ export async function getRsvpById(rsvpId: string) {
     .single();
 
   if (error || !data) throw new NotFoundError('RSVP');
-  return data;
+  return withRsvpApprovalStatus(data);
 }
 
 /**
@@ -43,7 +90,7 @@ export async function getEventRsvps(eventId: string) {
     .eq('event_id', eventId);
 
   if (error) throw error;
-  const all = rsvps || [];
+  const all = (rsvps || []).map(withRsvpApprovalStatus);
 
   const breakdown = {
     going: all.filter((r: any) => r.status === 'going').length,
@@ -120,7 +167,7 @@ export async function createRsvp(
       status: data.status,
       plus_one_count: plusOnes,
       dietary_preferences: data.dietaryPreferences,
-      custom_responses: data.customResponses,
+      custom_responses: buildRsvpMetadata(data.customResponses, 'pending'),
       check_in_status: 'not_checked_in',
       rsvp_deadline_met: deadlineMet,
       is_waitlisted: isWaitlisted,
@@ -131,16 +178,8 @@ export async function createRsvp(
 
   if (error) throw error;
 
-  // Create ticket if going and not waitlisted
+  // Keep event capacity state in sync for confirmed "going" responses.
   if (data.status === 'going' && !isWaitlisted) {
-    await supabase.from('tickets').insert({
-      rsvp_id: rsvp.id,
-      user_id: userId,
-      event_id: eventId,
-      check_in_status: 'not_checked_in',
-    });
-
-    // Auto-close: if event is now at capacity, flag it
     const stillHasCapacity = await checkEventCapacity(eventId, 0);
     if (!stillHasCapacity) {
       await supabase
@@ -158,10 +197,10 @@ export async function createRsvp(
       user_id: userId,
       status: 'waiting',
       position: waitlistPosition!,
-    });
+      });
   }
 
-  return rsvp;
+  return withRsvpApprovalStatus(rsvp);
 }
 
 /**
@@ -179,7 +218,7 @@ export async function updateRsvp(
 ) {
   const rsvp = await getRsvpById(rsvpId);
   if (rsvp.user_id !== userId) {
-    throw new Error('Not authorized to update this RSVP');
+    throw new ForbiddenError('Not authorized to update this RSVP');
   }
 
   const supabase = await createClient();
@@ -228,7 +267,10 @@ export async function updateRsvp(
       status: newStatus,
       plus_one_count: newPlusOnes,
       dietary_preferences: data.dietaryPreferences ?? rsvp.dietary_preferences,
-      custom_responses: data.customResponses ?? rsvp.custom_responses,
+      custom_responses: buildRsvpMetadata(
+        data.customResponses ?? rsvp.custom_responses,
+        'pending'
+      ),
       is_waitlisted: isWaitlisted,
       waitlist_position: waitlistPosition,
       updated_at: new Date().toISOString(),
@@ -239,24 +281,10 @@ export async function updateRsvp(
 
   if (error) throw error;
 
-  // If newly going and not waitlisted, generate ticket
-  if (newStatus === 'going' && !isWaitlisted && rsvp.status !== 'going') {
-    const { data: existingTicket } = await supabase
-      .from('tickets')
-      .select('id')
-      .eq('rsvp_id', rsvpId)
-      .single();
+  // Role/status edits require re-approval: remove previously issued ticket.
+  await supabase.from('tickets').delete().eq('rsvp_id', rsvpId);
 
-    if (!existingTicket) {
-      await supabase.from('tickets').insert({
-        rsvp_id: rsvpId,
-        user_id: userId,
-        event_id: rsvp.event_id,
-        check_in_status: 'not_checked_in',
-      });
-    }
-
-    // Check if event is now full
+  if (newStatus === 'going' && !isWaitlisted) {
     const stillHasCapacity = await checkEventCapacity(rsvp.event_id, 0);
     if (!stillHasCapacity) {
       await supabase
@@ -266,7 +294,7 @@ export async function updateRsvp(
     }
   }
 
-  return updated;
+  return withRsvpApprovalStatus(updated);
 }
 
 /**
@@ -275,7 +303,7 @@ export async function updateRsvp(
 export async function deleteRsvp(rsvpId: string, userId: string) {
   const rsvp = await getRsvpById(rsvpId);
   if (rsvp.user_id !== userId) {
-    throw new Error('Not authorized to delete this RSVP');
+    throw new ForbiddenError('Not authorized to delete this RSVP');
   }
 
   const supabase = await createClient();

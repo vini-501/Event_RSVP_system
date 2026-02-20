@@ -1,9 +1,9 @@
 'use client'
 
 import Link from 'next/link'
+import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { mockEvents, mockRsvps } from '@/lib/mock-data'
 import { ROUTES } from '@/lib/constants'
 import {
   Calendar,
@@ -18,16 +18,74 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/lib/auth-context'
 
+type DashboardData = {
+  stats: {
+    totalEvents: number
+    totalRsvps: number
+    upcomingEvents: number
+    totalAttendees: number
+    goingCount: number
+    growthPercent: number
+    topMonth: string
+    changes: {
+      totalEvents: number
+      totalRsvps: number
+      upcomingEvents: number
+      totalAttendees: number
+    }
+  }
+  chartBars: number[]
+  topEvents: Array<{
+    id: string
+    name: string
+    city: string | null
+    state: string | null
+    capacity: number
+    currentAttendees: number
+    rsvpCount: number
+  }>
+  recentEvents: Array<{
+    id: string
+    name: string
+    city: string | null
+    state: string | null
+    startDate: string
+    status: string
+    rsvpCount: number
+  }>
+}
+
 export default function OrganizerDashboard() {
   const { user } = useAuth()
-  const publishedEvents = mockEvents.filter((e) => e.status === 'published')
-  const liveEvents = mockEvents.filter((e) => e.status === 'live')
-  const totalRsvps = mockRsvps.length
-  const confirmedRsvps = mockRsvps.filter((r) => !r.isWaitlisted)
-  const goingCount = confirmedRsvps.filter((r) => r.status === 'going').length
-  const totalAttendees = new Set(confirmedRsvps.map((r) => r.userId)).size
+  const [data, setData] = useState<DashboardData | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
-  // Format current date
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        setIsLoading(true)
+        const response = await fetch('/api/organizer/dashboard', { cache: 'no-store' })
+        if (!response.ok) throw new Error('Failed to fetch organizer dashboard')
+        const payload = await response.json()
+        setData(payload?.data || null)
+      } catch (error) {
+        console.error('Failed to fetch organizer dashboard', error)
+        setData(null)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    void fetchDashboard()
+    const timer = setInterval(() => void fetchDashboard(), 30000)
+    return () => clearInterval(timer)
+  }, [])
+
+  const stats = data?.stats
+  const chartBars = data?.chartBars || []
+  const topEvents = data?.topEvents || []
+  const recentEvents = data?.recentEvents || []
+
   const now = new Date()
   const dateStr = now.toLocaleDateString('en-US', {
     weekday: 'long',
@@ -36,48 +94,39 @@ export default function OrganizerDashboard() {
     year: 'numeric',
   })
 
-  const statCards = [
-    {
-      label: 'Total Events',
-      value: mockEvents.length,
-      change: '+10%',
-      changeType: 'positive' as const,
-      changeLabel: 'vs last month',
-      icon: Calendar,
-    },
-    {
-      label: 'Total RSVPs',
-      value: totalRsvps,
-      change: '-9%',
-      changeType: 'negative' as const,
-      changeLabel: 'vs last month',
-      icon: TicketCheck,
-    },
-    {
-      label: 'Upcoming Events',
-      value: publishedEvents.length,
-      change: '+8%',
-      changeType: 'positive' as const,
-      changeLabel: 'vs last month',
-      icon: Eye,
-    },
-    {
-      label: 'Total Attendees',
-      value: totalAttendees.toLocaleString(),
-      change: '+10%',
-      changeType: 'positive' as const,
-      changeLabel: 'vs last month',
-      icon: Users,
-    },
-  ]
-
-  // Mock chart bars
-  const chartBars = [30, 45, 35, 50, 40, 60, 55, 65, 50, 70, 60, 80, 45, 55, 48, 62, 58, 75, 50, 65, 45, 58, 52, 68]
+  const statCards = useMemo(
+    () => [
+      {
+        label: 'Total Events',
+        value: stats?.totalEvents ?? 0,
+        change: stats?.changes.totalEvents ?? 0,
+        icon: Calendar,
+      },
+      {
+        label: 'Total RSVPs',
+        value: stats?.totalRsvps ?? 0,
+        change: stats?.changes.totalRsvps ?? 0,
+        icon: TicketCheck,
+      },
+      {
+        label: 'Upcoming Events',
+        value: stats?.upcomingEvents ?? 0,
+        change: stats?.changes.upcomingEvents ?? 0,
+        icon: Eye,
+      },
+      {
+        label: 'Total Attendees',
+        value: (stats?.totalAttendees ?? 0).toLocaleString(),
+        change: stats?.changes.totalAttendees ?? 0,
+        icon: Users,
+      },
+    ],
+    [stats],
+  )
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm text-muted-foreground">{dateStr}</p>
@@ -99,33 +148,28 @@ export default function OrganizerDashboard() {
           </div>
         </div>
 
-        {/* Stat Cards */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {statCards.map((stat) => {
             const Icon = stat.icon
+            const isPositive = stat.change >= 0
             return (
               <Card key={stat.label} className="relative overflow-hidden">
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between">
                     <div className="space-y-2">
                       <p className="text-sm text-muted-foreground">{stat.label}</p>
-                      <p className="text-3xl font-bold tracking-tight">{stat.value}</p>
+                      <p className="text-3xl font-bold tracking-tight">{isLoading ? '...' : stat.value}</p>
                       <div className="flex items-center gap-1">
                         <span
                           className={`inline-flex items-center gap-0.5 text-xs font-medium ${
-                            stat.changeType === 'positive'
-                              ? 'text-emerald-600'
-                              : 'text-red-500'
+                            isPositive ? 'text-emerald-600' : 'text-red-500'
                           }`}
                         >
-                          {stat.changeType === 'positive' ? (
-                            <TrendingUp className="h-3 w-3" />
-                          ) : (
-                            <TrendingDown className="h-3 w-3" />
-                          )}
-                          {stat.change}
+                          {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                          {isPositive ? '+' : ''}
+                          {stat.change}%
                         </span>
-                        <span className="text-xs text-muted-foreground">{stat.changeLabel}</span>
+                        <span className="text-xs text-muted-foreground">vs last month</span>
                       </div>
                     </div>
                     <div className="rounded-xl bg-primary/10 p-2.5">
@@ -138,9 +182,7 @@ export default function OrganizerDashboard() {
           })}
         </div>
 
-        {/* Charts Row */}
         <div className="grid gap-4 lg:grid-cols-5">
-          {/* RSVP Breakdown Chart */}
           <Card className="lg:col-span-3">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-base font-semibold">RSVP Breakdown</CardTitle>
@@ -150,9 +192,8 @@ export default function OrganizerDashboard() {
               </Button>
             </CardHeader>
             <CardContent>
-              {/* Mini bar chart */}
               <div className="flex items-end gap-1 h-40 pt-4">
-                {chartBars.map((height, i) => (
+                {(chartBars.length > 0 ? chartBars : new Array(24).fill(0)).map((height, i) => (
                   <div
                     key={i}
                     className="flex-1 rounded-t-sm bg-primary/20 hover:bg-primary/40 transition-colors relative group"
@@ -160,12 +201,11 @@ export default function OrganizerDashboard() {
                   >
                     <div
                       className="absolute bottom-0 left-0 right-0 rounded-t-sm bg-primary/60"
-                      style={{ height: `${height * 0.6}%` }}
+                      style={{ height: `${Math.round(height * 0.6)}%` }}
                     />
                   </div>
                 ))}
               </div>
-              {/* Summary stats */}
               <div className="grid grid-cols-2 gap-4 mt-6 pt-4 border-t border-border/60">
                 <div>
                   <p className="text-xs text-muted-foreground flex items-center gap-1.5">
@@ -174,11 +214,11 @@ export default function OrganizerDashboard() {
                   </p>
                   <div className="flex items-baseline gap-3 mt-1">
                     <p className="text-sm text-muted-foreground">Total RSVPs</p>
-                    <p className="font-bold">{totalRsvps}</p>
+                    <p className="font-bold">{stats?.totalRsvps ?? 0}</p>
                   </div>
                   <div className="flex items-baseline gap-3 mt-0.5">
                     <p className="text-sm text-muted-foreground">Confirmed</p>
-                    <p className="font-bold">{goingCount}</p>
+                    <p className="font-bold">{stats?.goingCount ?? 0}</p>
                   </div>
                 </div>
                 <div>
@@ -188,18 +228,20 @@ export default function OrganizerDashboard() {
                   </p>
                   <div className="flex items-baseline gap-3 mt-1">
                     <p className="text-sm text-muted-foreground">% Growth</p>
-                    <p className="font-bold text-emerald-600">+16.5%</p>
+                    <p className={`font-bold ${(stats?.growthPercent || 0) >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                      {(stats?.growthPercent || 0) >= 0 ? '+' : ''}
+                      {stats?.growthPercent ?? 0}%
+                    </p>
                   </div>
                   <div className="flex items-baseline gap-3 mt-0.5">
                     <p className="text-sm text-muted-foreground">Top Month</p>
-                    <p className="font-bold">Feb</p>
+                    <p className="font-bold">{stats?.topMonth || 'N/A'}</p>
                   </div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Event Summary */}
           <Card className="lg:col-span-2">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-base font-semibold">Event Summary</CardTitle>
@@ -209,28 +251,12 @@ export default function OrganizerDashboard() {
               </Button>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">{mockEvents.length}</p>
+              <p className="text-3xl font-bold">{stats?.totalEvents ?? 0}</p>
               <p className="text-sm text-muted-foreground mb-4">Total Events</p>
 
-              {/* Tabs */}
-              <div className="flex gap-1 bg-muted/60 rounded-full p-1 mb-4">
-                <button className="flex-1 rounded-full bg-primary text-primary-foreground text-xs font-medium py-1.5 px-3 transition-all">
-                  Top Event
-                </button>
-                <button className="flex-1 rounded-full text-muted-foreground text-xs font-medium py-1.5 px-3 hover:text-foreground transition-all">
-                  Category
-                </button>
-                <button className="flex-1 rounded-full text-muted-foreground text-xs font-medium py-1.5 px-3 hover:text-foreground transition-all">
-                  Status
-                </button>
-              </div>
-
-              {/* Top events list */}
               <div className="space-y-3">
-                {mockEvents.slice(0, 3).map((event) => {
-                  const fillPercent = Math.round(
-                    (event.currentAttendees / event.capacity) * 100
-                  )
+                {topEvents.map((event) => {
+                  const fillPercent = event.capacity > 0 ? Math.round((event.currentAttendees / event.capacity) * 100) : 0
                   return (
                     <Link
                       key={event.id}
@@ -243,11 +269,11 @@ export default function OrganizerDashboard() {
                             {event.name}
                           </p>
                           <span className="text-xs text-muted-foreground whitespace-nowrap">
-                            {event.currentAttendees} RSVPs
+                            {event.rsvpCount} RSVPs
                           </span>
                         </div>
                         <p className="text-xs text-muted-foreground mb-2">
-                          {event.city}{event.state ? `, ${event.state}` : ''}
+                          {event.city || 'Unknown'}{event.state ? `, ${event.state}` : ''}
                         </p>
                         <div className="flex items-center gap-2">
                           <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
@@ -264,12 +290,14 @@ export default function OrganizerDashboard() {
                     </Link>
                   )
                 })}
+                {!isLoading && topEvents.length === 0 && (
+                  <p className="text-sm text-muted-foreground">No events available yet.</p>
+                )}
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Recent Events Table */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base font-semibold">Recent Events</CardTitle>
@@ -294,53 +322,55 @@ export default function OrganizerDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {mockEvents.map((event) => {
-                    const eventRsvps = mockRsvps.filter((r) => r.eventId === event.id)
-                    return (
-                      <tr key={event.id} className="border-b border-border/40 last:border-0">
-                        <td className="py-3 pr-4">
-                          <p className="text-sm font-medium">{event.name}</p>
-                        </td>
-                        <td className="py-3 pr-4">
-                          <p className="text-sm text-muted-foreground">
-                            {new Date(event.startDate).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric',
-                            })}
-                          </p>
-                        </td>
-                        <td className="py-3 pr-4">
-                          <p className="text-sm text-muted-foreground">{event.city}, {event.state}</p>
-                        </td>
-                        <td className="py-3 pr-4">
-                          <p className="text-sm font-medium">{eventRsvps.length}</p>
-                        </td>
-                        <td className="py-3 pr-4">
-                          <span
-                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                              event.status === 'published'
-                                ? 'bg-primary/10 text-primary'
-                                : event.status === 'live'
-                                ? 'bg-emerald-500/10 text-emerald-600'
-                                : event.status === 'draft'
-                                ? 'bg-muted text-muted-foreground'
-                                : 'bg-red-500/10 text-red-600'
-                            }`}
-                          >
-                            {event.status}
-                          </span>
-                        </td>
-                        <td className="py-3 text-right">
-                          <Link href={ROUTES.ORGANIZER_EVENT_ANALYTICS(event.id)}>
-                            <Button variant="ghost" size="sm" className="text-xs rounded-lg">
-                              View
-                            </Button>
-                          </Link>
-                        </td>
-                      </tr>
-                    )
-                  })}
+                  {recentEvents.map((event) => (
+                    <tr key={event.id} className="border-b border-border/40 last:border-0">
+                      <td className="py-3 pr-4">
+                        <p className="text-sm font-medium">{event.name}</p>
+                      </td>
+                      <td className="py-3 pr-4">
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(event.startDate).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                          })}
+                        </p>
+                      </td>
+                      <td className="py-3 pr-4">
+                        <p className="text-sm text-muted-foreground">{event.city || 'Unknown'}{event.state ? `, ${event.state}` : ''}</p>
+                      </td>
+                      <td className="py-3 pr-4">
+                        <p className="text-sm font-medium">{event.rsvpCount}</p>
+                      </td>
+                      <td className="py-3 pr-4">
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                            event.status === 'published'
+                              ? 'bg-primary/10 text-primary'
+                              : event.status === 'live'
+                              ? 'bg-emerald-500/10 text-emerald-600'
+                              : event.status === 'draft'
+                              ? 'bg-muted text-muted-foreground'
+                              : 'bg-red-500/10 text-red-600'
+                          }`}
+                        >
+                          {event.status}
+                        </span>
+                      </td>
+                      <td className="py-3 text-right">
+                        <Link href={ROUTES.ORGANIZER_EVENT_ANALYTICS(event.id)}>
+                          <Button variant="ghost" size="sm" className="text-xs rounded-lg">
+                            View
+                          </Button>
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                  {!isLoading && recentEvents.length === 0 && (
+                    <tr>
+                      <td className="py-4 text-sm text-muted-foreground" colSpan={6}>No events found.</td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

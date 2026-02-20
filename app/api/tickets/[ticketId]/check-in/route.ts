@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { successResponse, errorResponse } from '@/lib/api/utils/formatters';
-import { handleApiError } from '@/lib/api/utils/errors';
+import { handleApiError, ForbiddenError } from '@/lib/api/utils/errors';
 import { requireAuth } from '@/lib/api/middleware/auth';
 import { checkInTicket, getTicketById, checkInByQRCode, getEventCheckInStats } from '@/lib/api/services/ticket.service';
 import { getEventById } from '@/lib/api/services/event.service';
@@ -19,7 +19,7 @@ export async function PUT(
     const event = await getEventById(ticket.event_id);
 
     if (event.organizer_id !== auth.userId && auth.role !== 'admin') {
-      throw new Error('Not authorized to check in attendees');
+      throw new ForbiddenError('Not authorized to check in attendees');
     }
 
     const checkedInTicket = await checkInTicket(ticketId);
@@ -59,6 +59,15 @@ export async function POST(
 
     if (!result.success) {
       return errorResponse('CHECKIN_FAILED', result.message || result.error || 'Failed to check in', 400, { error: result.error });
+    }
+
+    if (result.ticket?.id !== ticketId) {
+      return errorResponse('INVALID_TICKET', 'Ticket does not match requested ticket id', 400);
+    }
+
+    const event = await getEventById(result.ticket!.event_id);
+    if (event.organizer_id !== auth.userId && auth.role !== 'admin') {
+      throw new ForbiddenError('Not authorized to check in attendees');
     }
 
     const stats = await getEventCheckInStats(result.ticket!.event_id);

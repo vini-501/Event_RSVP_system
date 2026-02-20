@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server';
 import { successResponse, errorResponse } from '@/lib/api/utils/formatters';
-import { handleApiError } from '@/lib/api/utils/errors';
+import { handleApiError, ForbiddenError } from '@/lib/api/utils/errors';
 import { requireAuth } from '@/lib/api/middleware/auth';
+import { requireRole } from '@/lib/api/middleware/rbac';
 import { getEventRsvps, getEventWaitlist } from '@/lib/api/services/rsvp.service';
 import { getEventById } from '@/lib/api/services/event.service';
 
@@ -11,11 +12,12 @@ export async function GET(
 ) {
   try {
     const auth = await requireAuth(request);
+    requireRole(auth, 'organizer');
     const { eventId } = await params;
 
     const event = await getEventById(eventId);
     if (event.organizer_id !== auth.userId && auth.role !== 'admin') {
-      throw new Error('Not authorized to view event RSVPs');
+      throw new ForbiddenError('Not authorized to view event RSVPs');
     }
 
     const rsvps = await getEventRsvps(eventId);

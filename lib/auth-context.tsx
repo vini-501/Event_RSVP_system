@@ -1,9 +1,9 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { UserRole } from './types'
-import type { User as SupabaseUser } from '@supabase/supabase-js'
+import type { AuthChangeEvent, Session, User as SupabaseUser } from '@supabase/supabase-js'
 
 export interface AuthUser {
   id: string
@@ -17,8 +17,13 @@ interface AuthContextType {
   user: AuthUser | null
   isLoading: boolean
   isAuthenticated: boolean
-  login: (email: string, password: string) => Promise<void>
-  signup: (email: string, password: string, name: string, role: UserRole) => Promise<void>
+  login: (email: string, password: string) => Promise<UserRole>
+  signup: (
+    email: string,
+    password: string,
+    name: string,
+    role: Exclude<UserRole, 'admin'>,
+  ) => Promise<void>
   logout: () => Promise<void>
 }
 
@@ -33,7 +38,7 @@ function mapSupabaseUser(supabaseUser: SupabaseUser, profile?: any): AuthUser {
       : supabaseUser.user_metadata?.first_name
         ? `${supabaseUser.user_metadata.first_name} ${supabaseUser.user_metadata.last_name || ''}`.trim()
         : supabaseUser.email || '',
-    role: (profile?.role as UserRole) || (supabaseUser.user_metadata?.role as UserRole) || 'attendee',
+    role: (profile?.role as UserRole) || 'attendee',
     avatar: profile?.avatar_url || supabaseUser.user_metadata?.avatar_url,
   }
 }
@@ -41,9 +46,9 @@ function mapSupabaseUser(supabaseUser: SupabaseUser, profile?: any): AuthUser {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
-  const fetchProfile = useCallback(async (supabaseUser: SupabaseUser) => {
+  const fetchProfile = useCallback(async (supabaseUser: SupabaseUser): Promise<AuthUser> => {
     try {
       const { data: profile } = await supabase
         .from('profiles')
@@ -51,10 +56,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq('id', supabaseUser.id)
         .single()
 
-      setUser(mapSupabaseUser(supabaseUser, profile))
+      const mappedUser = mapSupabaseUser(supabaseUser, profile)
+      setUser(mappedUser)
+      return mappedUser
     } catch {
       // If profile fetch fails, fall back to user metadata
-      setUser(mapSupabaseUser(supabaseUser))
+      const mappedUser = mapSupabaseUser(supabaseUser)
+      setUser(mappedUser)
+      return mappedUser
     }
   }, [supabase])
 
@@ -77,7 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (event: AuthChangeEvent, session: Session | null) => {
         if (event === 'SIGNED_IN' && session?.user) {
           await fetchProfile(session.user)
         } else if (event === 'SIGNED_OUT') {
@@ -89,7 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe()
   }, [supabase, fetchProfile])
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<UserRole> => {
     setIsLoading(true)
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -97,23 +106,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         password,
       })
 
-      if (error) throw new Error(error.message)
+      if (error) {
+        const normalized = (error.message || '').toLowerCase()
+        if (
+          normalized.includes('invalid login credentials') ||
+          normalized.includes('invalid email or password')
+        ) {
+          throw new Error('No account found for this email. Please create an account.')
+        }
+        throw new Error(error.message)
+      }
 
       if (data.user) {
-        await fetchProfile(data.user)
+        const mappedUser = await fetchProfile(data.user)
+        return mappedUser.role
       }
+      return 'attendee'
     } finally {
       setIsLoading(false)
     }
   }
 
-  const signup = async (email: string, password: string, name: string, role: UserRole) => {
+  const signup = async (
+    email: string,
+    password: string,
+    name: string,
+    role: Exclude<UserRole, 'admin'>,
+  ) => {
     setIsLoading(true)
     try {
       const [firstName, ...lastNameParts] = name.split(' ')
       const lastName = lastNameParts.join(' ')
 
       console.log('[Auth] Attempting signup for:', email, 'with Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 30))
+
+      const sanitizedRole: Exclude<UserRole, 'admin'> =
+        role === 'organizer' ? 'organizer' : 'attendee'
 
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -122,7 +150,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           data: {
             first_name: firstName,
             last_name: lastName,
-            role,
+            role: sanitizedRole,
           },
         },
       })
@@ -146,12 +174,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const logout = async () => {
-    setIsLoading(true)
+    // Optimistic logout for instant UX.
+    setUser(null)
+    setIsLoading(false)
+
     try {
-      await supabase.auth.signOut()
-      setUser(null)
-    } finally {
-      setIsLoading(false)
+      await supabase.auth.signOut({ scope: 'local' })
+    } catch (error) {
+      console.error('[Auth] Sign out failed:', error)
     }
   }
 

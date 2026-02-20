@@ -40,7 +40,7 @@ export async function GET(request: Request) {
           .eq('id', user.id)
           .single()
 
-        const role = profile?.role || user.user_metadata?.role || 'attendee'
+        const role = profile?.role || 'attendee'
         if (role === 'admin') return NextResponse.redirect(`${origin}/admin/dashboard`)
         if (role === 'organizer') return NextResponse.redirect(`${origin}/organizer/dashboard`)
       }

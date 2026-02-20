@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { NotFoundError } from '../utils/errors';
+import { ForbiddenError, NotFoundError } from '../utils/errors';
 
 /**
  * Get comprehensive event analytics for organizer dashboard
@@ -9,7 +9,7 @@ export async function getEventAnalytics(eventId: string, organizerId: string) {
 
   const { data: event } = await supabase.from('events').select('*').eq('id', eventId).single();
   if (!event) throw new NotFoundError('Event');
-  if (event.organizer_id !== organizerId) throw new Error('Not authorized to view analytics');
+  if (event.organizer_id !== organizerId) throw new ForbiddenError('Not authorized to view analytics');
 
   const { data: allRsvps } = await supabase.from('rsvps').select('*').eq('event_id', eventId);
   const rsvps = allRsvps || [];
@@ -59,7 +59,7 @@ export async function searchAttendees(
 
   const { data: event } = await supabase.from('events').select('organizer_id').eq('id', eventId).single();
   if (!event) throw new NotFoundError('Event');
-  if (event.organizer_id !== organizerId) throw new Error('Not authorized to view attendees');
+  if (event.organizer_id !== organizerId) throw new ForbiddenError('Not authorized to view attendees');
 
   let query = supabase
     .from('rsvps')
@@ -94,7 +94,7 @@ export async function exportAttendeeList(eventId: string, organizerId: string) {
 
   const { data: event } = await supabase.from('events').select('organizer_id').eq('id', eventId).single();
   if (!event) throw new NotFoundError('Event');
-  if (event.organizer_id !== organizerId) throw new Error('Not authorized to export attendees');
+  if (event.organizer_id !== organizerId) throw new ForbiddenError('Not authorized to export attendees');
 
   const { data: rsvps } = await supabase
     .from('rsvps')
@@ -132,7 +132,7 @@ export async function getEventWaitlist(eventId: string, organizerId: string) {
 
   const { data: event } = await supabase.from('events').select('organizer_id').eq('id', eventId).single();
   if (!event) throw new NotFoundError('Event');
-  if (event.organizer_id !== organizerId) throw new Error('Not authorized to view waitlist');
+  if (event.organizer_id !== organizerId) throw new ForbiddenError('Not authorized to view waitlist');
 
   const { data, error } = await supabase
     .from('waitlist')
@@ -157,7 +157,7 @@ export async function sendAnnouncement(
 
   const { data: event } = await supabase.from('events').select('organizer_id').eq('id', eventId).single();
   if (!event) throw new NotFoundError('Event');
-  if (event.organizer_id !== organizerId) throw new Error('Not authorized to send announcements');
+  if (event.organizer_id !== organizerId) throw new ForbiddenError('Not authorized to send announcements');
 
   let query = supabase.from('rsvps').select('*', { count: 'exact', head: true }).eq('event_id', eventId);
   if (announcement.targetAudience && announcement.targetAudience !== 'all') {

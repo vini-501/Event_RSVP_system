@@ -68,7 +68,7 @@ export default function HomePage() {
                   Explore Events
                 </Button>
               </Link>
-              <Link href={ROUTES.SIGNUP}>
+              <Link href={`${ROUTES.LOGIN}?mode=signup`}>
                 <Button
                   size="lg"
                   variant="outline"
@@ -127,7 +127,7 @@ export default function HomePage() {
           <p className="text-lg text-muted-foreground mb-8 max-w-xl mx-auto">
             Join thousands of organizers who use EventEase to create memorable experiences.
           </p>
-          <Link href={ROUTES.SIGNUP}>
+          <Link href={`${ROUTES.LOGIN}?mode=signup`}>
             <Button size="lg" className="rounded-xl shadow-lg shadow-primary/25 px-8">
               Start for Free
             </Button>

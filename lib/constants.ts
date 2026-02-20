@@ -47,6 +47,7 @@ export const ROUTES = {
   ADMIN_DASHBOARD: '/admin/dashboard',
   ADMIN_USERS: '/admin/users',
   ADMIN_EVENTS: '/admin/events',
+  ADMIN_RSVPS: '/admin/rsvps',
 };
 
 // Pagination

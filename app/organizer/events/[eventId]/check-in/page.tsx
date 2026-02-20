@@ -309,7 +309,7 @@ export default function CheckInPage({
                 </p>
               </div>
             </div>
-            <form onSubmit={handleQRCodeScan} className="flex gap-2">
+            <form onSubmit={handleQRCodeScan} className="flex flex-col gap-2 sm:flex-row">
               <Input
                 placeholder="Scan QR code here..."
                 value={qrInput}
@@ -320,7 +320,7 @@ export default function CheckInPage({
               />
               <Button
                 type="submit"
-                className="gap-2 rounded-xl shadow-md shadow-primary/25"
+                className="w-full gap-2 rounded-xl shadow-md shadow-primary/25 sm:w-auto"
                 disabled={isProcessing}
               >
                 <QrCode className="h-4 w-4" />
@@ -344,7 +344,7 @@ export default function CheckInPage({
                 </p>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <Input
                 placeholder="Ticket ID..."
                 value={manualTicketId}
@@ -354,7 +354,7 @@ export default function CheckInPage({
               />
               <Button
                 variant="outline"
-                className="gap-2 rounded-xl"
+                className="w-full gap-2 rounded-xl sm:w-auto"
                 disabled={isProcessing || !manualTicketId.trim()}
                 onClick={() => handleManualCheckIn(manualTicketId)}
               >
@@ -412,27 +412,27 @@ export default function CheckInPage({
                   {filterTickets(pendingTickets).map((ticket) => (
                     <div
                       key={ticket.id}
-                      className="flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors"
+                      className="flex flex-col gap-3 px-4 py-3 transition-colors hover:bg-muted/30 sm:flex-row sm:items-center sm:justify-between"
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
                         <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary">
                           {(
                             ticket.profiles?.first_name?.[0] || '?'
                           ).toUpperCase()}
                         </div>
-                        <div>
-                          <p className="text-sm font-medium text-foreground">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-foreground">
                             {ticket.profiles?.first_name}{' '}
                             {ticket.profiles?.last_name}
                           </p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="truncate text-xs text-muted-foreground">
                             {ticket.profiles?.email}
                           </p>
                         </div>
                       </div>
                       <Button
                         size="sm"
-                        className="gap-2 rounded-xl shadow-md shadow-primary/25"
+                        className="w-full gap-2 rounded-xl shadow-md shadow-primary/25 sm:w-auto"
                         disabled={isProcessing}
                         onClick={() => handleManualCheckIn(ticket.id)}
                       >
@@ -468,21 +468,21 @@ export default function CheckInPage({
                   {filterTickets(checkedInTickets).map((ticket) => (
                     <div
                       key={ticket.id}
-                      className="flex items-center justify-between px-4 py-3 bg-emerald-50/30"
+                      className="flex flex-col gap-3 bg-emerald-50/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
                         <CheckCircle2 className="h-5 w-5 text-emerald-600 flex-shrink-0" />
-                        <div>
-                          <p className="text-sm font-medium text-foreground">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-foreground">
                             {ticket.profiles?.first_name}{' '}
                             {ticket.profiles?.last_name}
                           </p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="truncate text-xs text-muted-foreground">
                             {ticket.profiles?.email}
                           </p>
                         </div>
                       </div>
-                      <div className="text-right">
+                      <div className="w-full sm:w-auto sm:text-right">
                         {ticket.check_in_time && (
                           <p className="text-xs text-muted-foreground">
                             {format(

@@ -120,7 +120,7 @@ export async function updateEvent(
   // Check ownership
   const event = await getEventById(eventId);
   if (actorRole !== 'admin' && event.organizer_id !== organizerId) {
-    throw new Error('Not authorized to update this event');
+    throw new ForbiddenError('Not authorized to update this event');
   }
 
   const { data: updated, error } = await supabase

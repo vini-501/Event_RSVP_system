@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { Calendar, MapPin, ArrowRight, Filter } from 'lucide-react'
@@ -15,32 +15,80 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { CountdownTimer } from '@/components/events/countdown-timer'
-import { mockRSVPs, mockEvents } from '@/lib/mock-data'
 import { ROUTES, RSVP_STATUSES, DATE_FORMAT } from '@/lib/constants'
 import type { RSVPStatus } from '@/lib/types'
 
+type UserRsvp = {
+  id: string
+  status: RSVPStatus
+  approval_status?: 'pending' | 'approved' | 'rejected'
+  event_id: string
+  created_at: string
+  events?: {
+    id: string
+    name: string
+    location: string
+    start_date: string
+  }
+}
+
 export default function MyRSVPsPage() {
   const [filterStatus, setFilterStatus] = useState<RSVPStatus | 'all'>('all')
+  const [rsvps, setRsvps] = useState<UserRsvp[]>([])
+  const [ticketByRsvp, setTicketByRsvp] = useState<Record<string, string>>({})
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setIsLoading(true)
+        const [rsvpRes, ticketRes] = await Promise.all([
+          fetch('/api/rsvps', { cache: 'no-store' }),
+          fetch('/api/tickets', { cache: 'no-store' }),
+        ])
+
+        const rsvpData = rsvpRes.ok ? await rsvpRes.json().catch(() => ({})) : {}
+        const ticketData = ticketRes.ok ? await ticketRes.json().catch(() => ({})) : {}
+
+        const rows: UserRsvp[] = rsvpData?.data?.rsvps || []
+        const tickets: any[] = ticketData?.data?.tickets || []
+        const ticketMap = tickets.reduce((acc: Record<string, string>, t: any) => {
+          if (t.rsvp_id) acc[t.rsvp_id] = t.id
+          return acc
+        }, {})
+
+        setRsvps(rows)
+        setTicketByRsvp(ticketMap)
+      } catch (error) {
+        console.error('Failed to load my RSVPs', error)
+        setRsvps([])
+        setTicketByRsvp({})
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    void load()
+  }, [])
 
   const filteredRSVPs = useMemo(() => {
-    let filtered = mockRSVPs
+    let filtered = [...rsvps]
 
     if (filterStatus !== 'all') {
       filtered = filtered.filter((rsvp) => rsvp.status === filterStatus)
     }
 
-    // Sort by event date
     filtered.sort(
       (a, b) =>
-        (a.event?.startDate.getTime() || 0) -
-        (b.event?.startDate.getTime() || 0)
+        new Date(a.events?.start_date || a.created_at).getTime() -
+        new Date(b.events?.start_date || b.created_at).getTime()
     )
 
     return filtered
-  }, [filterStatus])
+  }, [filterStatus, rsvps])
 
   const upcomingCount = filteredRSVPs.filter(
-    (rsvp) => (rsvp.event?.startDate || new Date()) > new Date()
+    (rsvp) => new Date(rsvp.events?.start_date || rsvp.created_at) > new Date()
   ).length
 
   return (
@@ -49,7 +97,7 @@ export default function MyRSVPsPage() {
       <div>
         <h1 className="mb-2 text-3xl font-bold text-foreground">My RSVPs</h1>
         <p className="text-muted-foreground">
-          Manage your event registrations and view your tickets
+          Your RSVP requests and approval status
         </p>
       </div>
 
@@ -97,16 +145,23 @@ export default function MyRSVPsPage() {
       </div>
 
       {/* RSVPs List */}
-      {filteredRSVPs.length > 0 ? (
+      {isLoading ? (
+        <Card className="p-8 text-center text-muted-foreground">Loading RSVPs...</Card>
+      ) : filteredRSVPs.length > 0 ? (
         <div className="space-y-4">
           {filteredRSVPs.map((rsvp) => {
-            const event = rsvp.event
+            const event = rsvp.events
             if (!event) return null
 
-            const isUpcoming = event.startDate > new Date()
+            const isUpcoming = new Date(event.start_date) > new Date()
             const statusInfo = RSVP_STATUSES.find(
               (s) => s.value === rsvp.status
             )
+            const approval = rsvp.approval_status || 'approved'
+            const canViewTicket =
+              approval === 'approved' &&
+              rsvp.status === 'going' &&
+              !!ticketByRsvp[rsvp.id]
 
             return (
               <Card key={rsvp.id} className="overflow-hidden hover:shadow-lg transition-shadow">
@@ -126,13 +181,24 @@ export default function MyRSVPsPage() {
                       >
                         {statusInfo?.label}
                       </Badge>
+                      <Badge
+                        className={
+                          approval === 'approved'
+                            ? 'bg-emerald-500/10 text-emerald-600'
+                            : approval === 'rejected'
+                              ? 'bg-red-500/10 text-red-600'
+                              : 'bg-amber-500/10 text-amber-700'
+                        }
+                      >
+                        {approval === 'pending' ? 'Pending Approval' : approval}
+                      </Badge>
                     </div>
 
                     <div className="space-y-1 text-sm text-muted-foreground">
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4" />
-                        {format(event.startDate, DATE_FORMAT)} at{' '}
-                        {format(event.startDate, 'h:mm a')}
+                        {format(new Date(event.start_date), DATE_FORMAT)} at{' '}
+                        {format(new Date(event.start_date), 'h:mm a')}
                       </div>
                       <div className="flex items-center gap-2">
                         <MapPin className="h-4 w-4" />
@@ -142,19 +208,29 @@ export default function MyRSVPsPage() {
 
                     {isUpcoming && (
                       <div className="mt-3">
-                        <CountdownTimer targetDate={event.startDate} />
+                        <CountdownTimer targetDate={new Date(event.start_date)} />
                       </div>
                     )}
                   </div>
 
                   {/* Actions */}
                   <div className="flex flex-col gap-2 sm:flex-col sm:items-end">
-                    <Link href={ROUTES.MY_RSVP_DETAIL(rsvp.id)}>
-                      <Button size="sm" className="gap-2 w-full">
-                        View Ticket
-                        <ArrowRight className="h-4 w-4" />
+                    {canViewTicket ? (
+                      <Link href={ROUTES.MY_RSVP_DETAIL(rsvp.id)}>
+                        <Button size="sm" className="gap-2 w-full">
+                          View Ticket
+                          <ArrowRight className="h-4 w-4" />
+                        </Button>
+                      </Link>
+                    ) : (
+                      <Button size="sm" className="w-full" variant="outline" disabled>
+                        {approval === 'pending'
+                          ? 'Pending Approval'
+                          : approval === 'rejected'
+                            ? 'Rejected'
+                            : 'Ticket Not Available'}
                       </Button>
-                    </Link>
+                    )}
                     <Link href={ROUTES.EVENT_DETAILS(event.id)} className="w-full">
                       <Button size="sm" variant="outline" className="w-full">
                         Manage RSVP

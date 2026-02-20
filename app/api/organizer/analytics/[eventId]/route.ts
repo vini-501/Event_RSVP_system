@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { successResponse, errorResponse } from '@/lib/api/utils/formatters';
 import { handleApiError } from '@/lib/api/utils/errors';
 import { requireAuth } from '@/lib/api/middleware/auth';
+import { requireRole } from '@/lib/api/middleware/rbac';
 import { getEventAnalytics } from '@/lib/api/services/organizer.service';
 
 export async function GET(
@@ -10,6 +11,7 @@ export async function GET(
 ) {
   try {
     const auth = await requireAuth(request);
+    requireRole(auth, 'organizer');
     const { eventId } = await params;
 
     const analytics = await getEventAnalytics(eventId, auth.userId);

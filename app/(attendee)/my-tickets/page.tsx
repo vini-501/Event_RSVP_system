@@ -22,9 +22,7 @@ export default function MyTicketsPage() {
       if (!user?.id) return
 
       try {
-        const response = await fetch('/api/tickets', {
-          headers: { Authorization: `Bearer ${user.id}` },
-        })
+        const response = await fetch('/api/tickets', { cache: 'no-store' })
 
         if (!response.ok) throw new Error('Failed to fetch tickets')
 

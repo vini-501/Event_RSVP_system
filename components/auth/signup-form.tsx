@@ -26,7 +26,6 @@ import {
 } from '@/components/ui/form'
 import { useAuth } from '@/lib/auth-context'
 import { ROUTES } from '@/lib/constants'
-import type { UserRole } from '@/lib/types'
 
 const signupSchema = z
   .object({
@@ -34,7 +33,7 @@ const signupSchema = z
     email: z.string().email('Invalid email address'),
     password: z.string().min(6, 'Password must be at least 6 characters'),
     confirmPassword: z.string(),
-    role: z.enum(['attendee', 'organizer', 'admin']),
+    role: z.enum(['attendee', 'organizer']),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
@@ -64,9 +63,7 @@ export function SignupForm() {
 
     try {
       await signup(data.email, data.password, data.name, data.role)
-      if (data.role === 'admin') {
-        router.push(ROUTES.ADMIN_DASHBOARD)
-      } else if (data.role === 'organizer') {
+      if (data.role === 'organizer') {
         router.push(ROUTES.ORGANIZER_DASHBOARD)
       } else {
         router.push(ROUTES.EVENTS)
@@ -192,9 +189,9 @@ export function SignupForm() {
                       <SelectItem value="organizer">
                         📋 Organizer — Create and manage events
                       </SelectItem>
-                      <SelectItem value="admin">
+                      {false && <SelectItem value="admin">
                         🛡️ Admin — Manage users and platform
-                      </SelectItem>
+                      </SelectItem>}
                     </SelectContent>
                   </Select>
                   <FormMessage />

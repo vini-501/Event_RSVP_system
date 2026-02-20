@@ -19,15 +19,17 @@ export function EventDetailsSection({ event }: EventDetailsSectionProps) {
     <div className="space-y-6">
       {/* Event Header */}
       <div>
-        <div className="mb-4 flex items-start justify-between">
+        <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <Badge variant="secondary" className="mb-4">
               {event.status}
             </Badge>
-            <h1 className="text-4xl font-bold text-foreground">{event.name}</h1>
+            <h1 className="break-words text-3xl font-bold text-foreground sm:text-4xl">
+              {event.name}
+            </h1>
           </div>
           {event.price && (
-            <div className="text-right">
+            <div className="text-left sm:text-right">
               <p className="text-sm text-muted-foreground">Price</p>
               <p className="text-3xl font-bold text-primary">${event.price}</p>
             </div>

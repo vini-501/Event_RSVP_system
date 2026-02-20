@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { successResponse, errorResponse } from '@/lib/api/utils/formatters';
-import { handleApiError } from '@/lib/api/utils/errors';
+import { handleApiError, ForbiddenError } from '@/lib/api/utils/errors';
 import { parseRequestBody } from '@/lib/api/middleware/validation';
 import { updateRsvpSchema } from '@/lib/api/utils/validators';
 import { requireAuth } from '@/lib/api/middleware/auth';
@@ -17,7 +17,7 @@ export async function GET(
     const rsvp = await getRsvpById(rsvpId);
 
     if (rsvp.user_id !== auth.userId && auth.role !== 'admin') {
-      throw new Error('Not authorized to view this RSVP');
+      throw new ForbiddenError('Not authorized to view this RSVP');
     }
 
     return successResponse(rsvp, 'RSVP retrieved successfully');
