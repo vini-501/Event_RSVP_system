@@ -83,11 +83,24 @@ app/
   api/
 components/
 lib/
+  core/
+    constants.ts
+    types.ts
+    utils.ts
+  auth/
+    context.tsx
+  network/
+    api-client.ts
+  data/
+    mock-data.ts
   api/
     middleware/
     services/
     utils/
   supabase/
+docs/
+  architecture/
+    folder-structure.md
 ```
 
 ## Getting Started
@@ -150,4 +163,3 @@ Actively iterating. Current implementation is functional and portfolio-ready, wi
 ![DB Home Page](assets/images/db%20home%20page.png)
 ![Metrics](assets/images/metrics.png)
 ![Tables](assets/images/tables.png)
-
