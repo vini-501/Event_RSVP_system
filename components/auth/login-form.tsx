@@ -14,15 +14,21 @@ import { createClient } from '@/lib/supabase/client'
 
 /* ── Schemas ── */
 const loginSchema = z.object({
-  email: z.string().email('Enter a valid email'),
-  password: z.string().min(6, 'At least 6 characters'),
+  email: z.string().trim().email('Enter a valid email'),
+  password: z.string().min(6, 'Password is too short'),
 })
 
 const signupSchema = z
   .object({
-    name: z.string().min(2, 'At least 2 characters'),
-    email: z.string().email('Enter a valid email'),
-    password: z.string().min(6, 'At least 6 characters'),
+    name: z.string().trim().min(2, 'Name must be at least 2 characters'),
+    email: z.string().trim().email('Enter a valid email'),
+    password: z
+      .string()
+      .min(8, 'Password must be at least 8 characters')
+      .regex(/[a-z]/, 'Must include a lowercase letter')
+      .regex(/[A-Z]/, 'Must include an uppercase letter')
+      .regex(/[0-9]/, 'Must include a number')
+      .regex(/[^a-zA-Z0-9]/, 'Must include a special character'),
     confirmPassword: z.string(),
   })
   .refine((d) => d.password === d.confirmPassword, {

@@ -169,10 +169,19 @@ export async function deleteEvent(
 /**
  * Get event attendees/RSVPs
  */
-export async function getEventAttendees(eventId: string) {
-  await getEventById(eventId); // verify event exists
-  const supabase = await createClient();
+export async function getEventAttendees(
+  eventId: string,
+  organizerId?: string,
+  actorRole: string = 'organizer'
+) {
+  const event = await getEventById(eventId);
+  
+  // Enforce ownership if organizerId is provided and actor is not admin
+  if (organizerId && actorRole !== 'admin' && event.organizer_id !== organizerId) {
+    throw new ForbiddenError('Not authorized to view attendees for this event');
+  }
 
+  const supabase = await createClient();
   const { data: attendees, error } = await supabase
     .from('rsvps')
     .select('*, profiles!user_id(id, first_name, last_name, email, avatar_url)')

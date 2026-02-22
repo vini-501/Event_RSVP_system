@@ -51,10 +51,13 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const filter = searchParams.get('approvalStatus') || 'pending';
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '50');
+    const offset = (page - 1) * limit;
 
     const supabase = await createAdminClient();
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('rsvps')
       .select(`
         id,
@@ -68,8 +71,12 @@ export async function GET(request: NextRequest) {
         updated_at,
         profiles!user_id(id, first_name, last_name, email),
         events!event_id(id, name, start_date, location)
-      `)
+      `, { count: 'exact' })
       .order('created_at', { ascending: false });
+
+    // Note: Filtering by approval_status happens in-memory currently because it is stored in JSON.
+    // We fetch a reasonable limit to protect the server.
+    const { data, error, count } = await query.range(offset, offset + limit - 1);
 
     if (error) throw error;
 
@@ -83,7 +90,12 @@ export async function GET(request: NextRequest) {
     }
 
     return successResponse(
-      { rsvps: rows, total: rows.length },
+      { 
+        rsvps: rows, 
+        total: count || rows.length,
+        page,
+        limit
+      },
       'Admin RSVP approvals retrieved successfully'
     );
   } catch (error) {

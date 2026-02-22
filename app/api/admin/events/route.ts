@@ -10,12 +10,18 @@ export async function GET(request: NextRequest) {
     const auth = await requireAuth(request);
     requireRole(auth, 'admin');
 
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '50');
+    const offset = (page - 1) * limit;
+
     const supabase = await createClient();
 
-    const { data: events, error } = await supabase
+    const { data: events, error, count } = await supabase
       .from('events')
-      .select('*, profiles!organizer_id(id, first_name, last_name, email, avatar_url)')
-      .order('start_date', { ascending: true });
+      .select('*, profiles!organizer_id(id, first_name, last_name, email, avatar_url)', { count: 'exact' })
+      .order('start_date', { ascending: true })
+      .range(offset, offset + limit - 1);
 
     if (error) throw error;
 
@@ -60,7 +66,12 @@ export async function GET(request: NextRequest) {
     }));
 
     return successResponse(
-      { events: mappedEvents, total: mappedEvents.length },
+      { 
+        events: mappedEvents, 
+        total: count || mappedEvents.length,
+        page,
+        limit
+      },
       'Admin events retrieved successfully'
     );
   } catch (error) {
