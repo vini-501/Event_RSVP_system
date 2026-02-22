@@ -112,7 +112,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           normalized.includes('invalid login credentials') ||
           normalized.includes('invalid email or password')
         ) {
-          throw new Error('No account found for this email. Please create an account.')
+          throw new Error(
+            'Invalid email or password. If you signed up with Google or GitHub, use that provider to sign in, or reset your password.'
+          )
         }
         throw new Error(error.message)
       }
