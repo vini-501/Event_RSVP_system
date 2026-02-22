@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Menu, X, LogOut, User, Search, Settings, Bell, QrCode } from 'lucide-react'
+import { Menu, X, LogOut, User, Search, Settings, Bell, QrCode, Rocket } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Input } from '@/components/ui/input'
@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useAuth } from '@/lib/auth-context'
 import { ROUTES } from '@/lib/constants'
+import { useToast } from '@/hooks/use-toast'
 
 const publicNavItems = [
   { label: 'Discover', href: ROUTES.EVENTS },
@@ -39,6 +40,7 @@ const attendeeNavItems = [
 const adminNavItems = [
   { label: 'Dashboard', href: '/admin/dashboard' },
   { label: 'RSVP Approvals', href: ROUTES.ADMIN_RSVPS },
+  { label: 'Role Requests', href: '/admin/role-requests' },
   { label: 'Users', href: '/admin/users' },
   { label: 'Events', href: '/admin/events' },
 ]
@@ -48,9 +50,19 @@ export function Navbar() {
   const [searchQuery, setSearchQuery] = useState('')
   const [notifications, setNotifications] = useState<any[]>([])
   const [isNotificationsLoading, setIsNotificationsLoading] = useState(false)
-  const { isAuthenticated, user, logout, isLoading } = useAuth()
+  const [roleRequestStatus, setRoleRequestStatus] = useState<'idle' | 'pending' | 'submitting'>('idle')
+  const { isAuthenticated, user, logout, isLoading, refreshProfile } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
+  const { toast } = useToast()
+
+  // Check role request status on mount for attendees
+  useEffect(() => {
+    if (isAuthenticated && user?.role === 'attendee') {
+      void checkRoleRequestStatus()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, user?.role])
 
   const handleLogout = () => {
     void logout()
@@ -81,10 +93,12 @@ export function Navbar() {
     : publicNavItems
   const dashboardRoute =
     user?.role === 'admin'
-      ? ROUTES.ADMIN_DASHBOARD
+      ? '/admin/home'
       : user?.role === 'organizer'
-        ? ROUTES.ORGANIZER_DASHBOARD
-        : ROUTES.EVENTS
+        ? '/organizer/home'
+        : user?.role === 'attendee'
+          ? '/home'
+          : ROUTES.HOME
 
   const unreadCount = notifications.filter((n) => n.status !== 'read').length
 
@@ -120,12 +134,60 @@ export function Navbar() {
     }
   }
 
+  // Check if attendee already has a pending role request
+  const checkRoleRequestStatus = async () => {
+    if (!isAuthenticated || !user || user.role !== 'attendee') return
+    try {
+      const res = await fetch('/api/role-requests', { cache: 'no-store' })
+      if (!res.ok) return
+      const data = await res.json()
+      const requests = data?.data?.requests || []
+      const hasPending = requests.some((r: any) => r.status === 'pending')
+      setRoleRequestStatus(hasPending ? 'pending' : 'idle')
+    } catch {
+      // Silently fail
+    }
+  }
+
+  const handleRequestOrganiser = async () => {
+    setRoleRequestStatus('submitting')
+    try {
+      const res = await fetch('/api/role-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: 'I would like to create and manage events.' }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        toast({
+          title: 'Request failed',
+          description: data?.error?.message || 'Could not submit request.',
+          variant: 'destructive',
+        })
+        setRoleRequestStatus('idle')
+        return
+      }
+      toast({
+        title: 'Request submitted! \uD83D\uDE80',
+        description: 'Your organiser request has been sent to the admin for review.',
+      })
+      setRoleRequestStatus('pending')
+    } catch {
+      toast({
+        title: 'Request failed',
+        description: 'Something went wrong. Please try again.',
+        variant: 'destructive',
+      })
+      setRoleRequestStatus('idle')
+    }
+  }
+
   return (
     <nav className="sticky top-0 z-50 bg-card/80 backdrop-blur-xl border-b border-border/60">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link href={ROUTES.HOME} className="flex items-center gap-2.5">
+          <Link href={isAuthenticated && user ? dashboardRoute : ROUTES.HOME} className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary shadow-md shadow-primary/25">
               <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
                 <path d="M10 1L18 5.5V14.5L10 19L2 14.5V5.5L10 1Z" fill="#6d28d9" />
@@ -294,6 +356,28 @@ export function Navbar() {
                             Check-In Hub
                           </Link>
                         </DropdownMenuItem>
+                      </>
+                    )}
+                    {user.role === 'attendee' && (
+                      <>
+                        <DropdownMenuSeparator />
+                        {roleRequestStatus === 'pending' ? (
+                          <DropdownMenuItem disabled className="flex items-center gap-2 opacity-60">
+                            <Rocket className="h-4 w-4" />
+                            Request Pending ⏳
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem
+                            className="flex items-center gap-2 cursor-pointer text-primary focus:text-primary"
+                            disabled={roleRequestStatus === 'submitting'}
+                            onSelect={() => {
+                              void handleRequestOrganiser()
+                            }}
+                          >
+                            <Rocket className="h-4 w-4" />
+                            {roleRequestStatus === 'submitting' ? 'Submitting...' : ' Be an Organiser'}
+                          </DropdownMenuItem>
+                        )}
                       </>
                     )}
                     <DropdownMenuSeparator />

@@ -25,6 +25,7 @@ interface AuthContextType {
     role: Exclude<UserRole, 'admin'>,
   ) => Promise<void>
   logout: () => Promise<void>
+  refreshProfile: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -175,6 +176,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const refreshProfile = async () => {
+    try {
+      const { data: { user: supabaseUser } } = await supabase.auth.getUser()
+      if (supabaseUser) {
+        await fetchProfile(supabaseUser)
+      }
+    } catch {
+      // Silently fail
+    }
+  }
+
   const logout = async () => {
     // Optimistic logout for instant UX.
     setUser(null)
@@ -196,6 +208,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login,
         signup,
         logout,
+        refreshProfile,
       }}
     >
       {children}

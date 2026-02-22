@@ -24,7 +24,6 @@ const signupSchema = z
     email: z.string().email('Enter a valid email'),
     password: z.string().min(6, 'At least 6 characters'),
     confirmPassword: z.string(),
-    role: z.enum(['attendee', 'organizer']),
   })
   .refine((d) => d.password === d.confirmPassword, {
     message: "Passwords don't match",
@@ -49,7 +48,7 @@ export function LoginForm() {
 
   const signupForm = useForm<SignupValues>({
     resolver: zodResolver(signupSchema),
-    defaultValues: { name: '', email: '', password: '', confirmPassword: '', role: 'attendee' },
+    defaultValues: { name: '', email: '', password: '', confirmPassword: '' },
   })
 
   const switchMode = (m: 'login' | 'signup') => {
@@ -96,9 +95,9 @@ export function LoginForm() {
     setSubmitError(null)
     try {
       const role = await login(data.email, data.password)
-      if (role === 'admin') router.push(ROUTES.ADMIN_DASHBOARD)
-      else if (role === 'organizer') router.push(ROUTES.ORGANIZER_DASHBOARD)
-      else router.push(ROUTES.EVENTS)
+      if (role === 'admin') router.push(ROUTES.ADMIN_HOME)
+      else if (role === 'organizer') router.push(ROUTES.ORGANIZER_HOME)
+      else router.push(ROUTES.ATTENDEE_HOME)
     } catch (e) {
       setSubmitError(e instanceof Error ? e.message : 'Invalid email or password')
     }
@@ -107,9 +106,8 @@ export function LoginForm() {
   const onSignup = async (data: SignupValues) => {
     setSubmitError(null)
     try {
-      await signup(data.email, data.password, data.name, data.role)
-      if (data.role === 'organizer') router.push(ROUTES.ORGANIZER_DASHBOARD)
-      else router.push(ROUTES.EVENTS)
+      await signup(data.email, data.password, data.name, 'attendee')
+      router.push(ROUTES.ATTENDEE_HOME)
     } catch (e) {
       setSubmitError(e instanceof Error ? e.message : 'Failed to create account')
     }
@@ -135,11 +133,6 @@ export function LoginForm() {
   }
 
   const busy = isLoading || !!socialLoading
-  const roles = [
-    { value: 'attendee', label: '🎟 Attendee' },
-    { value: 'organizer', label: '📋 Organizer' },
-    { value: 'admin', label: '🛡 Admin' },
-  ] as const
 
   return (
     <>
@@ -290,19 +283,7 @@ export function LoginForm() {
                 {signupForm.formState.errors.confirmPassword && <Err msg={signupForm.formState.errors.confirmPassword.message!} />}
               </Field>
 
-              {/* Role selection */}
-              <Field label="I am a...">
-                <div className="lf-roles">
-                  {roles.filter((r) => r.value !== 'admin').map(r => (
-                    <label key={r.value} className="lf-role-label">
-                      <input type="radio" value={r.value} {...signupForm.register('role')} className="sr-only" />
-                      <span className={`lf-role-chip ${signupForm.watch('role') === r.value ? 'lf-role-active' : ''}`}>
-                        {r.label}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </Field>
+
 
               {submitError && <div className="lf-alert">{submitError}</div>}
 

@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { Search, CheckCircle2, XCircle, Calendar, User } from 'lucide-react'
+import { Search, Calendar, User, Check, X, Loader2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
 type AdminRsvp = {
@@ -191,28 +191,35 @@ export default function AdminRsvpsPage() {
                           </span>
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="gap-1"
-                              disabled={updatingId === row.id || row.approval_status === 'approved'}
-                              onClick={() => void handleApproval(row.id, 'approve')}
-                            >
-                              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                              Approve
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="gap-1"
-                              disabled={updatingId === row.id || row.approval_status === 'rejected'}
-                              onClick={() => void handleApproval(row.id, 'reject')}
-                            >
-                              <XCircle className="h-4 w-4 text-red-600" />
-                              Reject
-                            </Button>
-                          </div>
+                          {row.approval_status === 'pending' ? (
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                size="sm"
+                                className="h-8 gap-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white"
+                                disabled={updatingId === row.id}
+                                onClick={() => void handleApproval(row.id, 'approve')}
+                              >
+                                {updatingId === row.id ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <Check className="h-3.5 w-3.5" />
+                                )}
+                                Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 gap-1 rounded-lg border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                                disabled={updatingId === row.id}
+                                onClick={() => void handleApproval(row.id, 'reject')}
+                              >
+                                <X className="h-3.5 w-3.5" />
+                                Reject
+                              </Button>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">Processed</span>
+                          )}
                         </td>
                       </tr>
                     )
