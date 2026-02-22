@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Menu, X, LogOut, User, Search, Settings, Bell } from 'lucide-react'
+import { Menu, X, LogOut, User, Search, Settings, Bell, QrCode } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Input } from '@/components/ui/input'
@@ -26,6 +26,7 @@ const publicNavItems = [
 const organizerNavItems = [
   { label: 'Dashboard', href: ROUTES.ORGANIZER_DASHBOARD },
   { label: 'Events', href: ROUTES.ORGANIZER_EVENTS },
+  { label: 'Check-In', href: ROUTES.ORGANIZER_CHECK_IN },
   { label: 'Create Event', href: '/organizer/create-event' },
 ]
 
@@ -285,6 +286,12 @@ export function Navbar() {
                           <Link href={ROUTES.ORGANIZER_EVENTS} className="flex items-center gap-2 cursor-pointer">
                             <Settings className="h-4 w-4" />
                             Manage Events
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href={ROUTES.ORGANIZER_CHECK_IN} className="flex items-center gap-2 cursor-pointer">
+                            <QrCode className="h-4 w-4" />
+                            Check-In Hub
                           </Link>
                         </DropdownMenuItem>
                       </>

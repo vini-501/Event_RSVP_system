@@ -67,10 +67,10 @@ export default function AdminRsvpsPage() {
   const handleApproval = async (rsvpId: string, action: 'approve' | 'reject') => {
     try {
       setUpdatingId(rsvpId)
-      const response = await fetch(`/api/admin/rsvps/${rsvpId}`, {
+      const response = await fetch('/api/admin/rsvps', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ rsvpId, action }),
       })
 
       if (!response.ok) {

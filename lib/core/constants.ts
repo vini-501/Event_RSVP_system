@@ -41,6 +41,7 @@ export const ROUTES = {
   PROFILE: '/profile',
   ORGANIZER_DASHBOARD: '/organizer/dashboard',
   ORGANIZER_EVENTS: '/organizer/events',
+  ORGANIZER_CHECK_IN: '/organizer/check-in',
   ORGANIZER_EVENT_MANAGE: (id: string) => `/organizer/events/${id}/manage`,
   ORGANIZER_EVENT_ATTENDEES: (id: string) => `/organizer/events/${id}/attendees`,
   ORGANIZER_EVENT_ANALYTICS: (id: string) => `/organizer/events/${id}/analytics`,
