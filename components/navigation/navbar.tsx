@@ -375,7 +375,7 @@ export function Navbar() {
                             }}
                           >
                             <Rocket className="h-4 w-4" />
-                            {roleRequestStatus === 'submitting' ? 'Submitting...' : ' Be an Organiser'}
+                            {roleRequestStatus === 'submitting' ? 'Submitting...' : 'Be an Organiser'}
                           </DropdownMenuItem>
                         )}
                       </>

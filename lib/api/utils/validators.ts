@@ -2,8 +2,8 @@ import { z } from 'zod';
 import { ValidationError } from './errors';
 
 export const loginSchema = z.object({
-  email: z.string().trim().email('Invalid email address'),
-  password: z.string().min(6, 'Password is too short'),
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
 export const signupSchema = z.object({
