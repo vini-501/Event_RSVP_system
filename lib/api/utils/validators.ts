@@ -2,16 +2,22 @@ import { z } from 'zod';
 import { ValidationError } from './errors';
 
 export const loginSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  email: z.string().trim().email('Invalid email address'),
+  password: z.string().min(6, 'Password is too short'),
 });
 
 export const signupSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  email: z.string().trim().email('Invalid email address'),
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[a-z]/, 'Must include a lowercase letter')
+    .regex(/[A-Z]/, 'Must include an uppercase letter')
+    .regex(/[0-9]/, 'Must include a number')
+    .regex(/[^a-zA-Z0-9]/, 'Must include a special character'),
   confirmPassword: z.string(),
-  firstName: z.string().min(1, 'First name is required'),
-  lastName: z.string().min(1, 'Last name is required'),
+  firstName: z.string().trim().min(1, 'First name is required'),
+  lastName: z.string().trim().min(1, 'Last name is required'),
   role: z.enum(['attendee', 'organizer']).default('attendee'),
 }).refine(data => data.password === data.confirmPassword, {
   message: 'Passwords do not match',

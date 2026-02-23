@@ -5,8 +5,25 @@ import { handleApiError } from '@/lib/api/utils/errors';
 import { parseRequestBody } from '@/lib/api/middleware/validation';
 import { loginSchema } from '@/lib/api/utils/validators';
 
+import { rateLimit } from '@/lib/api/middleware/rate-limit';
+
 export async function POST(request: NextRequest) {
   try {
+    // Apply rate limiting: 5 requests per 15 minutes
+    const rl = await rateLimit(request, {
+      limit: 5,
+      windowMs: 15 * 60 * 1000,
+      keyPrefix: 'login',
+    });
+
+    if (rl.isLimited) {
+      return errorResponse(
+        'TOO_MANY_REQUESTS',
+        `Too many login attempts. Please try again in ${rl.resetInSeconds} seconds.`,
+        429
+      );
+    }
+
     const body = await parseRequestBody(request, loginSchema);
     const supabase = await createClient();
 

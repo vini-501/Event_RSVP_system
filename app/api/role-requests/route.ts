@@ -6,18 +6,31 @@ import { requireRole } from '@/lib/api/middleware/rbac'
 import { successResponse, errorResponse } from '@/lib/api/utils/formatters'
 import { handleApiError } from '@/lib/api/utils/errors'
 
+import { rateLimit } from '@/lib/api/middleware/rate-limit'
+
 // POST — attendee submits a role upgrade request
 export async function POST(request: NextRequest) {
   try {
     const auth = await requireAuth(request)
 
+    // Apply rate limiting: 2 requests per 24 hours (very low frequency)
+    const rl = await rateLimit(request, {
+      limit: 2,
+      windowMs: 24 * 60 * 60 * 1000,
+      keyPrefix: 'role_request',
+    })
+
+    if (rl.isLimited) {
+      return errorResponse(
+        'TOO_MANY_REQUESTS',
+        `You've made too many requests. Please try again in several hours.`,
+        429
+      )
+    }
+
     // Only attendees can request an upgrade
     if (auth.role !== 'attendee') {
-      return errorResponse(
-        'ALREADY_UPGRADED',
-        'You are already an organizer or admin.',
-        400
-      )
+      return errorResponse('ALREADY_UPGRADED', 'You are already an organizer or admin.', 400)
     }
 
     const body = await request.json().catch(() => ({}))
@@ -34,11 +47,7 @@ export async function POST(request: NextRequest) {
       .maybeSingle()
 
     if (existing) {
-      return errorResponse(
-        'REQUEST_EXISTS',
-        'You already have a pending organizer request.',
-        409
-      )
+      return errorResponse('REQUEST_EXISTS', 'You already have a pending organizer request.', 409)
     }
 
     // Insert new request
@@ -69,20 +78,25 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const statusFilter = searchParams.get('status') || 'all'
 
-    // If admin, list all requests
+    // If admin, list all requests with pagination
     if (auth.role === 'admin') {
+      const page = parseInt(searchParams.get('page') || '1')
+      const limit = parseInt(searchParams.get('limit') || '50')
+      const offset = (page - 1) * limit
+
       const adminSupabase = await createAdminClient()
 
       let query = adminSupabase
         .from('role_requests')
-        .select('*')
+        .select('*', { count: 'exact' })
         .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1)
 
       if (statusFilter !== 'all') {
         query = query.eq('status', statusFilter)
       }
 
-      const { data: requests, error } = await query
+      const { data: requests, error, count } = await query
 
       if (error) throw error
 
@@ -114,7 +128,12 @@ export async function GET(request: NextRequest) {
       })
 
       return successResponse(
-        { requests: enrichedRequests, total: enrichedRequests.length },
+        {
+          requests: enrichedRequests,
+          total: count || enrichedRequests.length,
+          page,
+          limit,
+        },
         'Role requests retrieved'
       )
     }

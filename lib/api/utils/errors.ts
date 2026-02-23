@@ -68,7 +68,7 @@ export function handleApiError(error: unknown) {
       success: false,
       error: {
         code: 'INTERNAL_SERVER_ERROR',
-        message: error instanceof Error ? error.message : 'An unexpected error occurred',
+        message: 'An unexpected error occurred',
       },
     },
   };

@@ -29,9 +29,15 @@ import { ROUTES } from '@/lib/constants'
 
 const signupSchema = z
   .object({
-    name: z.string().min(2, 'Name must be at least 2 characters'),
-    email: z.string().email('Invalid email address'),
-    password: z.string().min(6, 'Password must be at least 6 characters'),
+    name: z.string().trim().min(2, 'Name must be at least 2 characters'),
+    email: z.string().trim().email('Invalid email address'),
+    password: z
+      .string()
+      .min(8, 'Password must be at least 8 characters')
+      .regex(/[a-z]/, 'Must include a lowercase letter')
+      .regex(/[A-Z]/, 'Must include an uppercase letter')
+      .regex(/[0-9]/, 'Must include a number')
+      .regex(/[^a-zA-Z0-9]/, 'Must include a special character'),
     confirmPassword: z.string(),
     role: z.enum(['attendee', 'organizer']),
   })
