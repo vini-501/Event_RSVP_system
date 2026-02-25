@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { successResponse, errorResponse } from '@/lib/api/utils/formatters';
 import { handleApiError } from '@/lib/api/utils/errors';
 import { parseRequestBody } from '@/lib/api/middleware/validation';
@@ -53,8 +53,10 @@ export async function POST(request: NextRequest) {
       return errorResponse('AUTH_ERROR', 'Signup failed', 500);
     }
 
-    // Fetch the profile that was auto-created by the trigger
-    const { data: profile } = await supabase
+    // Fetch the profile using Admin Client because the user might not be 
+    // logged in yet (if email confirmation is on) and RLS would block the read.
+    const adminSupabase = await createAdminClient();
+    const { data: profile } = await adminSupabase
       .from('profiles')
       .select('*')
       .eq('id', data.user.id)
@@ -70,8 +72,9 @@ export async function POST(request: NextRequest) {
           role: profile?.role || body.role || 'attendee',
         },
         session: data.session,
+        emailConfirmationRequired: !data.session,
       },
-      'Signup successful',
+      data.session ? 'Signup successful' : 'Signup successful. Please check your email to confirm your account.',
       201
     );
   } catch (error) {

@@ -1,11 +1,12 @@
 import { NextRequest } from 'next/server';
 import { successResponse, errorResponse } from '@/lib/api/utils/formatters';
 import { handleApiError } from '@/lib/api/utils/errors';
-import { parseRequestBody, validateQueryParam } from '@/lib/api/middleware/validation';
+import { parseRequestBody } from '@/lib/api/middleware/validation';
 import { createEventSchema } from '@/lib/api/utils/validators';
 import { requireAuth } from '@/lib/api/middleware/auth';
 import { requireRole } from '@/lib/api/middleware/rbac';
 import { getEvents, createEvent } from '@/lib/api/services/event.service';
+import { createClient } from '@/lib/supabase/server';
 
 export async function GET(request: NextRequest) {
   try {
@@ -30,17 +31,20 @@ export async function GET(request: NextRequest) {
     // 2. Get attendee counts for these events (status='going', not waitlisted)
     // We'll do a raw count query for all these IDs
     // Since we can't easily do a group-by count via the service, we'll use a direct client here
-    const { createClient } = require('@/lib/supabase/server');
     const supabase = await createClient();
-    
-    // Fetch counts - simple approach: get all valid RSVPs for these events and count in memory
-    // For production with thousands of RSVPs, use rpc or a view. For now this is fine.
-    const { data: rsvps } = await supabase
-      .from('rsvps')
-      .select('event_id, plus_one_count')
-      .in('event_id', eventIds)
-      .eq('status', 'going')
-      .eq('is_waitlisted', false);
+
+    let rsvps: Array<{ event_id: string; plus_one_count: number | null }> = [];
+    if (eventIds.length > 0) {
+      // Fetch counts - simple approach: get all valid RSVPs for these events and count in memory
+      // For production with thousands of RSVPs, use rpc or a view. For now this is fine.
+      const { data } = await supabase
+        .from('rsvps')
+        .select('event_id, plus_one_count')
+        .in('event_id', eventIds)
+        .eq('status', 'going')
+        .eq('is_waitlisted', false);
+      rsvps = data || [];
+    }
 
     const attendeeCounts: Record<string, number> = {};
     (rsvps || []).forEach((r: any) => {

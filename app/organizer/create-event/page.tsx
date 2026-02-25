@@ -266,12 +266,24 @@ export default function CreateEventPage() {
                     name="capacity"
                     type="number"
                     min="1"
+                    max="1000000"
                     placeholder="e.g. 200"
                     value={formData.capacity}
                     onChange={handleChange}
+                    onKeyDown={(e) => {
+                      if (['e', 'E', '+', '-'].includes(e.key)) {
+                        e.preventDefault();
+                      }
+                    }}
                     required
                     className="rounded-xl"
                   />
+                  {parseInt(formData.capacity) > 1000000 && (
+                    <p className="text-xs text-destructive">Capacity cannot exceed 1,000,000</p>
+                  )}
+                  {formData.capacity && parseInt(formData.capacity) < 1 && (
+                    <p className="text-xs text-destructive">Capacity must be at least 1</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <label htmlFor="price" className="text-sm font-medium">
@@ -282,12 +294,24 @@ export default function CreateEventPage() {
                     name="price"
                     type="number"
                     min="0"
+                    max="1000000"
                     step="0.01"
                     placeholder="0.00"
                     value={formData.price}
                     onChange={handleChange}
+                    onKeyDown={(e) => {
+                      if (['e', 'E', '+', '-'].includes(e.key)) {
+                        e.preventDefault();
+                      }
+                    }}
                     className="rounded-xl"
                   />
+                  {parseFloat(formData.price) > 1000000 && (
+                    <p className="text-xs text-destructive">Price cannot exceed $1,000,000</p>
+                  )}
+                  {formData.price && parseFloat(formData.price) < 0 && (
+                    <p className="text-xs text-destructive">Price cannot be negative</p>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -327,15 +351,14 @@ export default function CreateEventPage() {
             <Link href="/organizer/events">
               <Button type="button" variant="outline" className="rounded-xl">Cancel</Button>
             </Link>
-            <Button type="submit" disabled={isSubmitting} className="rounded-xl shadow-md shadow-primary/25">
-              {isSubmitting ? (
-                'Creating...'
-              ) : (
-                <>
-                  <CalendarPlus className="h-4 w-4 mr-2" />
-                  Create Event
-                </>
-              )}
+            <Button
+              type="submit"
+              className="rounded-xl shadow-md shadow-primary/25"
+              loading={isSubmitting}
+              loadingText="Creating..."
+            >
+              <CalendarPlus className="h-4 w-4 mr-2" />
+              Create Event
             </Button>
           </div>
         </div>

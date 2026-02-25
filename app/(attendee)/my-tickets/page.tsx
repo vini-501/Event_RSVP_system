@@ -290,7 +290,7 @@ export default function MyTicketsPage() {
       {/* Tickets Tabs */}
       {tickets.length > 0 ? (
         <Tabs defaultValue="upcoming" className="w-full">
-          <TabsList>
+          <TabsList className="grid w-full grid-cols-2 sm:w-fit">
             <TabsTrigger value="upcoming">Active ({notCheckedInTickets.length})</TabsTrigger>
             <TabsTrigger value="used">Used ({checkedInTickets.length})</TabsTrigger>
           </TabsList>
@@ -350,7 +350,7 @@ export default function MyTicketsPage() {
       )}
 
       <Dialog open={isQrOpen} onOpenChange={setIsQrOpen}>
-        <DialogContent className="sm:max-w-xl">
+        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>Ticket QR Code</DialogTitle>
             <DialogDescription>
@@ -367,7 +367,7 @@ export default function MyTicketsPage() {
                   alt="Ticket QR Code"
                   width={280}
                   height={280}
-                  className="h-[280px] w-[280px] rounded-md bg-white p-2"
+                  className="aspect-square h-auto w-full max-w-[280px] rounded-md bg-white p-2"
                 />
               </div>
             </div>
@@ -452,10 +452,11 @@ function TicketCard({
                 variant="outline"
                 onClick={onDownload}
                 className="gap-2"
-                disabled={isDownloading}
+                loading={isDownloading}
+                loadingText="Preparing..."
               >
                 <Download className="h-4 w-4" />
-                {isDownloading ? 'Preparing...' : 'Download'}
+                Download
               </Button>
             </>
           )}

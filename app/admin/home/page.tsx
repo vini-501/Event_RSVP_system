@@ -79,20 +79,20 @@ function QuickActionsCarousel() {
     <div className="relative">
       <button
         onClick={() => scroll('left')}
-        className="absolute -left-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-background shadow-md border border-border/60 p-1.5 hover:bg-muted transition-colors"
+        className="absolute left-1 top-1/2 z-10 hidden -translate-y-1/2 rounded-full border border-border/60 bg-background p-1.5 shadow-md transition-colors hover:bg-muted lg:inline-flex"
       >
         <ChevronLeft className="h-4 w-4" />
       </button>
       <div
         ref={scrollRef}
-        className="flex gap-4 overflow-x-auto scroll-smooth pb-2 px-1"
+        className="flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth pb-2 pl-1 pr-2 lg:px-8"
         style={{ scrollbarWidth: 'none' }}
       >
         {quickActions.map((action) => {
           const Icon = action.icon
           return (
-            <Link key={action.href} href={action.href} className="shrink-0">
-              <Card className="min-w-[180px] group cursor-pointer hover:shadow-md hover:border-primary/20 transition-all duration-300 border-border/60">
+            <Link key={action.href} href={action.href} className="shrink-0 snap-start">
+              <Card className="group w-[180px] cursor-pointer border-border/60 transition-all duration-300 hover:border-primary/20 hover:shadow-md">
                 <CardContent className="p-5 flex flex-col gap-3">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${action.bg}`}>
                     <Icon className={`h-5 w-5 ${action.color}`} />
@@ -109,7 +109,7 @@ function QuickActionsCarousel() {
       </div>
       <button
         onClick={() => scroll('right')}
-        className="absolute -right-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-background shadow-md border border-border/60 p-1.5 hover:bg-muted transition-colors"
+        className="absolute right-1 top-1/2 z-10 hidden -translate-y-1/2 rounded-full border border-border/60 bg-background p-1.5 shadow-md transition-colors hover:bg-muted lg:inline-flex"
       >
         <ChevronRight className="h-4 w-4" />
       </button>
@@ -185,7 +185,7 @@ export default function AdminHomePage() {
           </p>
 
           {/* Metrics Strip */}
-          <div className="mt-8 grid grid-cols-3 gap-4 max-w-lg">
+          <div className="mt-8 grid max-w-lg grid-cols-1 gap-4 sm:grid-cols-3">
             {metricCards.map((m) => {
               const Icon = m.icon
               return (
@@ -209,15 +209,15 @@ export default function AdminHomePage() {
       <div className="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8 space-y-10">
         {/* Attention Banner */}
         {!isLoading && pendingRoleRequests.length > 0 && (
-          <div className="flex items-center justify-between gap-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-5 py-4">
+          <div className="flex flex-col gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
             <div className="flex items-center gap-3">
               <AlertCircle className="h-5 w-5 text-amber-600 shrink-0" />
               <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
                 {pendingRoleRequests.length} organiser request{pendingRoleRequests.length > 1 ? 's' : ''} waiting for your review.
               </p>
             </div>
-            <Link href="/admin/role-requests">
-              <Button size="sm" className="rounded-xl bg-amber-500 hover:bg-amber-600 text-white shrink-0">
+            <Link href="/admin/role-requests" className="w-full sm:w-auto">
+              <Button size="sm" className="w-full shrink-0 rounded-xl bg-amber-500 text-white hover:bg-amber-600 sm:w-auto">
                 Review <ChevronRight className="ml-1 h-4 w-4" />
               </Button>
             </Link>

@@ -146,7 +146,7 @@ export default function AdminEventsPage() {
             {isLoading ? (
               <div className="p-10 text-center text-sm text-muted-foreground">Loading events...</div>
             ) : (
-            <table className="w-full">
+            <table className="min-w-[760px] w-full">
               <thead>
                 <tr className="border-b border-border/60 bg-muted/30">
                   <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Event</th>
@@ -163,10 +163,10 @@ export default function AdminEventsPage() {
                     <tr key={event.id} className="hover:bg-muted/20 transition-colors">
                       <td className="px-6 py-4">
                         <div>
-                          <p className="text-sm font-medium">{event.name}</p>
-                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                          <p className="max-w-[280px] truncate text-sm font-medium">{event.name}</p>
+                          <p className="mt-0.5 flex max-w-[260px] items-center gap-1 truncate text-xs text-muted-foreground">
                             <MapPin className="h-3 w-3" />
-                            {event.location}
+                            <span className="truncate">{event.location}</span>
                           </p>
                         </div>
                       </td>

@@ -157,8 +157,8 @@ export default function ProfilePage() {
             )}
 
             {/* Submit Button */}
-            <Button type="submit" disabled={isSaving}>
-              {isSaving ? 'Saving...' : 'Save Changes'}
+            <Button type="submit" loading={isSaving} loadingText="Saving...">
+              Save Changes
             </Button>
           </form>
         </Form>

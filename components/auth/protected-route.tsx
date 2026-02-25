@@ -1,6 +1,6 @@
 'use client'
 
-import { ReactNode } from 'react'
+import { ReactNode, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 import type { UserRole } from '@/lib/types'
@@ -19,6 +19,12 @@ export function ProtectedRoute({
   const { user, isLoading } = useAuth()
   const router = useRouter()
 
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.replace('/login')
+    }
+  }, [isLoading, user, router])
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -30,11 +36,7 @@ export function ProtectedRoute({
     )
   }
 
-  if (!user) {
-    // Redirect to login
-    router.push('/login')
-    return null
-  }
+  if (!user) return null
 
   if (requiredRoles && !requiredRoles.includes(user.role)) {
     // User doesn't have required role

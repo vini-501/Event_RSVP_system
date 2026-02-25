@@ -139,9 +139,10 @@ export function ResetPasswordForm() {
               type="submit"
               size="lg"
               className="w-full"
-              disabled={isSubmitting}
+              loading={isSubmitting}
+              loadingText="Sending..."
             >
-              {isSubmitting ? 'Sending...' : 'Send Reset Link'}
+              Send Reset Link
             </Button>
           </form>
         </Form>

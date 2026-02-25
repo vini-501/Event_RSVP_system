@@ -100,7 +100,7 @@ export default function EventsPage() {
           />
         </div>
         <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-          <SelectTrigger className="rounded-xl">
+          <SelectTrigger className="w-full rounded-xl">
             <div className="flex items-center gap-2">
               <Filter className="h-4 w-4" />
               <SelectValue placeholder="Category" />
@@ -116,7 +116,7 @@ export default function EventsPage() {
           </SelectContent>
         </Select>
         <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
-          <SelectTrigger className="rounded-xl">
+          <SelectTrigger className="w-full rounded-xl">
             <SelectValue placeholder="Sort by" />
           </SelectTrigger>
           <SelectContent>

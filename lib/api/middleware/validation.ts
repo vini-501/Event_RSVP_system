@@ -18,6 +18,11 @@ export async function parseRequestBody<T>(
       }, {} as Record<string, string>);
       throw new ValidationError('Request validation failed', details);
     }
+    
+    if (error instanceof SyntaxError || (error instanceof Error && error.message.includes('Unexpected end of JSON input'))) {
+      throw new ValidationError('Invalid JSON body');
+    }
+    
     throw error;
   }
 }

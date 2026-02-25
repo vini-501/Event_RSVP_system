@@ -29,13 +29,13 @@ const baseEventSchema = z.object({
   description: z.string().min(10, 'Description must be at least 10 characters'),
   category: z.enum(['conference', 'workshop', 'meetup', 'social', 'networking', 'other']),
   location: z.string().min(3, 'Location is required'),
-  capacity: z.number().min(1, 'Capacity must be at least 1'),
+  capacity: z.number().min(1, 'Capacity must be at least 1').max(1000000, 'Capacity cannot exceed 1,000,000'),
   startDateTime: z.string().datetime('Invalid start date/time'),
   endDateTime: z.string().datetime('Invalid end date/time'),
   imageUrl: z.string().url().optional(),
   rsvpDeadline: z.string().datetime().optional(),
   tags: z.array(z.string()).optional(),
-  price: z.number().min(0).optional(),
+  price: z.number().min(0, 'Price cannot be negative').max(1000000, 'Price cannot exceed 1,000,000').optional(),
 });
 
 export const createEventSchema = baseEventSchema.refine(data => new Date(data.endDateTime) > new Date(data.startDateTime), {

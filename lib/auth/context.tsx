@@ -89,6 +89,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event: AuthChangeEvent, session: Session | null) => {
         if (event === 'SIGNED_IN' && session?.user) {
+          if (user?.id === session.user.id) {
+            return
+          }
           await fetchProfile(session.user)
         } else if (event === 'SIGNED_OUT') {
           setUser(null)
@@ -97,7 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     )
 
     return () => subscription.unsubscribe()
-  }, [supabase, fetchProfile])
+  }, [supabase, fetchProfile, user?.id])
 
   const login = async (email: string, password: string): Promise<UserRole> => {
     setIsLoading(true)

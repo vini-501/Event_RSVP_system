@@ -204,7 +204,7 @@ export default function AdminUsersPage() {
             {isLoading ? (
               <div className="p-10 text-center text-sm text-muted-foreground">Loading users...</div>
             ) : (
-              <table className="w-full">
+              <table className="min-w-[760px] w-full">
                 <thead>
                   <tr className="border-b border-border/60 bg-muted/30">
                     <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -236,11 +236,11 @@ export default function AdminUsersPage() {
                               .join('')
                               .slice(0, 2)}
                           </div>
-                          <div>
-                            <p className="text-sm font-medium">{user.name}</p>
-                            <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <div className="min-w-0">
+                            <p className="max-w-[220px] truncate text-sm font-medium">{user.name}</p>
+                            <p className="flex max-w-[280px] items-center gap-1 text-xs text-muted-foreground">
                               <Mail className="h-3 w-3" />
-                              {user.email}
+                              <span className="truncate">{user.email}</span>
                             </p>
                           </div>
                         </div>

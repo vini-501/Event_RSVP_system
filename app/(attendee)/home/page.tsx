@@ -82,7 +82,7 @@ function EventCarousel({ events, isLoading }: { events: Event[]; isLoading: bool
     return (
       <div className="flex gap-4 overflow-hidden">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="min-w-[260px] h-36 rounded-2xl bg-muted/50 animate-pulse" />
+          <div key={i} className="h-36 min-w-[220px] rounded-2xl bg-muted/50 animate-pulse sm:min-w-[260px]" />
         ))}
       </div>
     )
@@ -104,18 +104,18 @@ function EventCarousel({ events, isLoading }: { events: Event[]; isLoading: bool
     <div className="relative">
       <button
         onClick={() => scroll('left')}
-        className="absolute -left-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-background shadow-md border border-border/60 p-1.5 hover:bg-muted transition-colors"
+        className="absolute left-1 top-1/2 z-10 hidden -translate-y-1/2 rounded-full border border-border/60 bg-background p-1.5 shadow-md transition-colors hover:bg-muted sm:inline-flex"
       >
         <ChevronLeft className="h-4 w-4" />
       </button>
       <div
         ref={scrollRef}
-        className="flex gap-4 overflow-x-auto scroll-smooth pb-2 scrollbar-hide px-1"
+        className="flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth pb-2 pl-1 pr-2 scrollbar-hide"
         style={{ scrollbarWidth: 'none' }}
       >
         {events.map((event) => (
-          <Link key={event.id} href={ROUTES.EVENT_DETAILS(event.id)} className="shrink-0">
-            <Card className="min-w-[260px] max-w-[260px] group hover:shadow-lg hover:border-primary/30 transition-all duration-300 cursor-pointer">
+          <Link key={event.id} href={ROUTES.EVENT_DETAILS(event.id)} className="shrink-0 snap-start">
+            <Card className="group w-[220px] cursor-pointer transition-all duration-300 hover:border-primary/30 hover:shadow-lg sm:w-[260px]">
               <CardContent className="p-5">
                 <Badge className="mb-3 text-xs capitalize bg-primary/10 text-primary border-0">
                   {event.category || 'event'}
@@ -144,7 +144,7 @@ function EventCarousel({ events, isLoading }: { events: Event[]; isLoading: bool
       </div>
       <button
         onClick={() => scroll('right')}
-        className="absolute -right-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-background shadow-md border border-border/60 p-1.5 hover:bg-muted transition-colors"
+        className="absolute right-1 top-1/2 z-10 hidden -translate-y-1/2 rounded-full border border-border/60 bg-background p-1.5 shadow-md transition-colors hover:bg-muted sm:inline-flex"
       >
         <ChevronRight className="h-4 w-4" />
       </button>

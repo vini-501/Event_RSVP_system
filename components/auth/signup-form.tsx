@@ -217,9 +217,10 @@ export function SignupForm() {
               type="submit"
               size="lg"
               className="w-full rounded-xl shadow-md shadow-primary/25"
-              disabled={isLoading}
+              loading={isLoading}
+              loadingText="Creating account..."
             >
-              {isLoading ? 'Creating account...' : 'Create Account'}
+              Create Account
             </Button>
           </form>
         </Form>

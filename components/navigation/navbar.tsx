@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Menu, X, LogOut, User, Search, Settings, Bell, QrCode, Rocket } from 'lucide-react'
+import { Menu, X, LogOut, User, Search, Settings, Bell, QrCode, Rocket, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Input } from '@/components/ui/input'
@@ -48,6 +48,7 @@ const adminNavItems = [
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [notifications, setNotifications] = useState<any[]>([])
   const [isNotificationsLoading, setIsNotificationsLoading] = useState(false)
   const [roleRequestStatus, setRoleRequestStatus] = useState<'idle' | 'pending' | 'submitting'>('idle')
@@ -64,10 +65,24 @@ export function Navbar() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, user?.role])
 
-  const handleLogout = () => {
-    void logout()
-    router.replace(ROUTES.HOME)
-    router.refresh()
+  const handleLogout = async () => {
+    if (isLoggingOut) return
+    setIsLoggingOut(true)
+    // Close mobile menu immediately so the app responds instantly.
+    setIsOpen(false)
+    toast({
+      title: 'Logged out',
+      description: 'You have been signed out successfully.',
+      duration: 3000,
+    })
+    // Let the toast paint before auth/navigation transitions.
+    await new Promise((resolve) => setTimeout(resolve, 900))
+    try {
+      await logout()
+      router.replace(ROUTES.HOME)
+    } finally {
+      setIsLoggingOut(false)
+    }
   }
 
   const getInitials = (name: string) => {
@@ -382,11 +397,14 @@ export function Navbar() {
                     )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
-                      onClick={handleLogout}
+                      disabled={isLoggingOut}
+                      onClick={() => {
+                        void handleLogout()
+                      }}
                       className="flex items-center gap-2 cursor-pointer text-destructive focus:text-destructive"
                     >
-                      <LogOut className="h-4 w-4" />
-                      Log out
+                      {isLoggingOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+                      {isLoggingOut ? 'Logging out...' : 'Log out'}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -466,9 +484,10 @@ export function Navbar() {
                     variant="outline"
                     size="sm"
                     className="w-full gap-2 rounded-xl text-destructive hover:text-destructive"
+                    loading={isLoggingOut}
+                    loadingText="Logging out..."
                     onClick={() => {
-                      handleLogout()
-                      setIsOpen(false)
+                      void handleLogout()
                     }}
                   >
                     <LogOut className="h-4 w-4" />
