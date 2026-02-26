@@ -143,18 +143,17 @@ export function LoginForm() {
   return (
     <>
       <div className="lf-outer">
-        {/* ── Left panel: hero image ── */}
         <div className="lf-hero">
           <Image
             src="/images/tech cartoon.png"
             fill
-            style={{ objectFit: 'cover', objectPosition: 'left center' }}
+            style={{ objectFit: 'cover', objectPosition: 'center' }}
             alt="Hero"
             priority
           />
         </div>
 
-        {/* ── Right panel: card centered ── */}
+        {/* ── Right panel: card ── */}
         <div className="lf-card-wrap">
           <div className="lf-card">
 
@@ -316,32 +315,52 @@ export function LoginForm() {
       
       {/* ── Styles ── */}
       <style jsx global>{`
-        /* Outer split wrapper */
+        /* Page Background (Greenish) */
+        body {
+          margin: 0;
+          background-color: #d1eca5; /* from the image background outer edge */
+        }
+
+        /* Outer split wrapper (the tablet-like frame) */
         .lf-outer {
           display: flex;
-          height: 100vh;
+          height: calc(100vh - 40px); /* Leave margin */
+          margin: 20px;
+          border-radius: 40px;
           overflow: hidden;
+          background-color: #e5f6cd; /* Inner background color matching image */
+          border: 12px solid #333333; /* The dark border frame */
+          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
         }
 
         /* Left panel — hero image */
         .lf-hero {
           position: relative;
           flex: 0 0 55%;
-          height: 100vh;
-          background-color: #d4edda;
-          border-radius: 24px;
-          overflow: hidden;
-          margin: 1.5rem;
+          height: 100%;
         }
 
-        /* Right panel — card centered */
+        /* Right panel — card (in this case, it's just the right half background) */
         .lf-card-wrap {
           flex: 1;
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 1.5rem;
-          background-color: #f0f4f8;
+          padding: 2rem;
+          background-color: transparent;
+        }
+
+        /* The white card from the image */
+        .lf-card {
+          width: 100%;
+          max-width: 500px; /* Increased from 450px */
+          background: #ffffff;
+          border-radius: 30px;
+          padding: 3.5rem 3rem; /* Increased padding slightly for larger feel */
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.05); /* Very soft shadow */
+          font-family: 'Inter', 'Geist', -apple-system, sans-serif;
+          overflow-y: auto;
+          max-height: calc(100vh - 80px);
         }
 
         .lf-header-top {
@@ -370,28 +389,17 @@ export function LoginForm() {
         }
 
         @media (max-width: 900px) {
-          .lf-outer { flex-direction: column; }
-          .lf-hero { flex: 0 0 50%; width: 100%; }
+          .lf-outer { 
+            flex-direction: column; 
+            border-width: 8px;
+            border-radius: 24px;
+          }
+          .lf-hero { flex: 0 0 40%; width: 100%; }
           .lf-card-wrap { flex: 1; padding: 1rem; }
         }
         @media (max-width: 640px) {
           .lf-hero { display: none; }
-          .lf-card-wrap { background-color: #d4edda; }
-        }
-
-        /* The white bordered card */
-        .lf-card {
-          width: 100%;
-          max-width: 560px;
-          background: rgba(255, 255, 255, 0.97);
-          border: 2px solid #e5e7eb;
-          border-radius: 20px;
-          padding: 2.5rem 2.5rem 2.25rem;
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18), 0 4px 20px rgba(0,0,0,0.08);
-          font-family: 'Inter', 'Geist', -apple-system, sans-serif;
-          backdrop-filter: blur(4px);
-          overflow-y: auto;
-          max-height: 95vh;
+          .lf-card-wrap { background-color: transparent; }
         }
 
         /* Logo */
@@ -444,32 +452,32 @@ export function LoginForm() {
         .lf-form {
           display: flex;
           flex-direction: column;
-          gap: 0.85rem;
+          gap: 1.2rem;
         }
         .lf-field {
-          display: flex; flex-direction: column; gap: 0.3rem;
+          display: flex; flex-direction: column; gap: 0.4rem;
         }
         .lf-label {
-          font-size: 0.8rem;
-          font-weight: 600;
-          color: #374151;
+          font-size: 0.85rem; /* Larger from image */
+          font-weight: 500;
+          color: #6b7280;
         }
         .lf-input {
           width: 100%;
-          padding: 0.62rem 0.85rem;
-          border: 1.5px solid #e5e7eb;
-          border-radius: 9px;
-          font-size: 0.875rem;
+          padding: 0.8rem 1rem;
+          border: 1px solid #e5e7eb;
+          border-radius: 9999px; /* Fully rounded inputs like image */
+          font-size: 0.9rem;
           color: #111827;
           background: #fff;
           outline: none;
-          transition: all 0.2s ease-in-out;
+          transition: border-color 0.2s;
           box-sizing: border-box;
         }
-        .lf-input::placeholder { color: #9ca3af; }
+        .lf-input::placeholder { color: #9ca3af; font-size: 0.85rem; font-weight: normal; }
         .lf-input:focus {
-          border-color: #7c3aed;
-          box-shadow: 0 0 0 3px rgba(124,58,237,0.12);
+          border-color: #8cc63f; /* Green focus ring corresponding to theme */
+          box-shadow: 0 0 0 2px rgba(140, 198, 63, 0.2);
         }
         .lf-input-pr { padding-right: 2.5rem; }
         .lf-input-err { 
@@ -509,25 +517,22 @@ export function LoginForm() {
         /* Primary button */
         .lf-btn {
           width: 100%;
-          padding: 0.7rem;
-          border-radius: 10px;
-          background: linear-gradient(90deg, #7c3aed, #6d28d9);
-          color: white;
-          font-size: 0.92rem;
+          padding: 0.9rem;
+          border-radius: 9999px; /* Pill shape matching image */
+          background-color: #8cc63f; /* Bright green from image */
+          color: #111827; /* Dark text on button per image */
+          font-size: 0.95rem;
           font-weight: 700;
           border: none;
           cursor: pointer;
           display: flex; align-items: center; justify-content: center;
-          transition: all 0.3s ease;
-          box-shadow: 0 4px 14px rgba(124,58,237,0.35);
-          letter-spacing: 0.01em;
+          transition: opacity 0.2s ease, transform 0.1s;
         }
         .lf-btn:hover:not(:disabled) {
           opacity: 0.9;
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(124,58,237,0.45);
+          transform: translateY(-1px);
         }
-        .lf-btn:active:not(:disabled) { transform: scale(0.95); }
+        .lf-btn:active:not(:disabled) { transform: scale(0.98); }
         .lf-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
         /* Spinner */
@@ -563,13 +568,12 @@ export function LoginForm() {
         .lf-social-btn {
           display: flex; align-items: center; justify-content: center;
           width: 44px; height: 44px;
-          border-radius: 50%; border: 1.5px solid #e5e7eb; background: #fff;
-          cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+          border-radius: 12px; border: none; background: #ebf5df; /* light green matching image icons */
+          cursor: pointer; transition: transform 0.1s;
           color: #111827;
         }
         .lf-social-btn:hover:not(:disabled) {
-          border-color: #7c3aed;
-          box-shadow: 0 2px 10px rgba(124,58,237,0.2);
+          background-color: #def0c9;
           transform: translateY(-2px);
         }
         .lf-social-btn:disabled { opacity: 0.5; cursor: not-allowed; }

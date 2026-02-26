@@ -4,25 +4,37 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import Link from 'next/link'
-import { ArrowLeft, Mail, ChevronRight } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Lock, Eye, EyeOff, CheckCircle2, ChevronRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { ROUTES } from '@/lib/constants'
 
 const schema = z.object({
-  email: z.string().trim().email('Enter a valid email address'),
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[a-z]/, 'Must include a lowercase letter')
+    .regex(/[A-Z]/, 'Must include an uppercase letter')
+    .regex(/[0-9]/, 'Must include a number')
+    .regex(/[^a-zA-Z0-9]/, 'Must include a special character'),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ['confirmPassword'],
 })
 
 type Values = z.infer<typeof schema>
 
-export function ResetPasswordForm() {
+export function UpdatePasswordForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isSubmitted, setIsSubmitted] = useState(false)
+  const [isSuccess, setIsSuccess] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
 
   const form = useForm<Values>({
     resolver: zodResolver(schema),
-    defaultValues: { email: '' },
+    defaultValues: { password: '', confirmPassword: '' },
   })
 
   const onSubmit = async (data: Values) => {
@@ -31,15 +43,20 @@ export function ResetPasswordForm() {
 
     try {
       const supabase = createClient()
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(data.email, {
-        redirectTo: `${window.location.origin}${ROUTES.RESET_PASSWORD}`,
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: data.password,
       })
 
-      if (resetError) throw resetError
-      setIsSubmitted(true)
+      if (updateError) throw updateError
+      setIsSuccess(true)
+      
+      // Auto redirect after 3 seconds
+      setTimeout(() => {
+        router.push(ROUTES.LOGIN)
+      }, 3000)
     } catch (e) {
-      console.error('Reset password error:', e)
-      setError(e instanceof Error ? e.message : 'Failed to send reset link')
+      console.error('Update password error:', e)
+      setError(e instanceof Error ? e.message : 'Failed to update password')
     } finally {
       setIsSubmitting(false)
     }
@@ -47,50 +64,67 @@ export function ResetPasswordForm() {
 
   return (
     <div className="rf-container">
-      {isSubmitted ? (
+      {isSuccess ? (
         <>
           <div className="rf-icon-wrap rf-icon-success">
-            <Mail className="h-6 w-6 text-emerald-600" />
+            <CheckCircle2 className="h-6 w-6 text-emerald-600" />
           </div>
-          <h1 className="rf-title">Check your email</h1>
+          <h1 className="rf-title">Password updated</h1>
           <p className="rf-desc mb-10">
-            We&apos;ve sent a password reset link to <span className="font-semibold text-foreground">{form.getValues('email')}</span>. 
-            Please check your inbox and follow the link to reset your password.
+            Your password has been successfully reset. You can now use your new password to sign in.
           </p>
-          
-          <div className="flex flex-col gap-4 w-full">
-            <Link href={ROUTES.LOGIN} className="rf-btn">
-              Back to Sign In
-            </Link>
-            <button 
-              onClick={() => setIsSubmitted(false)} 
-              className="rf-btn rf-btn-outline"
-            >
-              Didn&apos;t receive it? Try again
-            </button>
+          <div className="w-full p-4 bg-emerald-50 border border-emerald-100 rounded-xl text-emerald-700 text-sm font-medium flex items-center justify-center">
+            <span className="rf-spin rf-spin-emerald mr-3" />
+            Redirecting to login...
           </div>
         </>
       ) : (
         <>
           <div className="mb-10 w-full">
-            <h1 className="rf-title">Forgot password?</h1>
+            <div className="rf-icon-wrap rf-icon-lock">
+              <Lock className="h-6 w-6 text-indigo-600" />
+            </div>
+            <h1 className="rf-title">Set new password</h1>
             <p className="rf-desc">
-              No worries! Enter your email and we&apos;ll send you instructions to reset it.
+              Your new password must be different from previously used passwords.
             </p>
           </div>
 
           <form onSubmit={form.handleSubmit(onSubmit)} className="rf-form" noValidate>
             <div className="rf-field">
-              <label className="rf-label">Email Address</label>
+              <label className="rf-label">New Password</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  className={`rf-input ${form.formState.errors.password ? 'rf-input-err' : ''}`}
+                  disabled={isSubmitting}
+                  {...form.register('password')}
+                />
+                <button
+                  type="button"
+                  className="rf-eye"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+              {form.formState.errors.password && (
+                <span className="rf-err">{form.formState.errors.password.message}</span>
+              )}
+            </div>
+
+            <div className="rf-field">
+              <label className="rf-label">Confirm New Password</label>
               <input
-                type="email"
-                placeholder="name@example.com"
-                className={`rf-input ${form.formState.errors.email ? 'rf-input-err' : ''}`}
+                type="password"
+                placeholder="••••••••"
+                className={`rf-input ${form.formState.errors.confirmPassword ? 'rf-input-err' : ''}`}
                 disabled={isSubmitting}
-                {...form.register('email')}
+                {...form.register('confirmPassword')}
               />
-              {form.formState.errors.email && (
-                <span className="rf-err">{form.formState.errors.email.message}</span>
+              {form.formState.errors.confirmPassword && (
+                <span className="rf-err">{form.formState.errors.confirmPassword.message}</span>
               )}
             </div>
 
@@ -99,19 +133,12 @@ export function ResetPasswordForm() {
             <button type="submit" className="rf-btn" disabled={isSubmitting}>
               {isSubmitting ? <span className="rf-spin" /> : (
                 <>
-                  Send Reset Link
+                  Reset Password
                   <ChevronRight className="ml-2 h-4 w-4" />
                 </>
               )}
             </button>
           </form>
-
-          <div className="mt-10 text-center w-full pt-6 border-t border-gray-100">
-            <Link href={ROUTES.LOGIN} className="rf-link inline-flex items-center gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Back to Sign In
-            </Link>
-          </div>
         </>
       )}
 
@@ -122,27 +149,26 @@ export function ResetPasswordForm() {
           flex-direction: column;
           align-items: flex-start;
         }
-        .rf-title {
-          font-size: 2.25rem;
-          font-weight: 800;
-          color: #111827;
-          letter-spacing: -0.03em;
-          margin-bottom: 0.85rem;
-          text-align: left;
-        }
-        .rf-desc {
-          font-size: 1.05rem;
-          color: #4b5563;
-          line-height: 1.6;
-          text-align: left;
-        }
         .rf-icon-wrap {
           width: 64px; height: 64px;
           border-radius: 20px;
           display: flex; align-items: center; justify-content: center;
           margin-bottom: 2.5rem;
         }
+        .rf-icon-lock { background: #f5f3ff; border: 2.5px solid #8b5cf6; }
         .rf-icon-success { background: #ecfdf5; border: 2.5px solid #10b981; }
+        .rf-title {
+          font-size: 2.25rem;
+          font-weight: 800;
+          color: #111827;
+          letter-spacing: -0.03em;
+          margin-bottom: 0.85rem;
+        }
+        .rf-desc {
+          font-size: 1.05rem;
+          color: #4b5563;
+          line-height: 1.6;
+        }
         .rf-form { display: flex; flex-direction: column; gap: 2rem; width: 100%; }
         .rf-field { display: flex; flex-direction: column; gap: 0.6rem; }
         .rf-label { font-size: 0.9rem; font-weight: 600; color: #374151; }
@@ -164,6 +190,11 @@ export function ResetPasswordForm() {
         }
         .rf-input-err { border-color: #ef4444; }
         .rf-err { font-size: 0.85rem; color: #ef4444; font-weight: 500; margin-top: 0.4rem; }
+        .rf-eye {
+          position: absolute; right: 1.25rem; top: 50%; transform: translateY(-50%);
+          background: none; border: none; color: #9ca3af; cursor: pointer;
+          display: flex; align-items: center; justify-content: center;
+        }
         .rf-alert {
           padding: 1.125rem;
           background: #fef2f2;
@@ -185,23 +216,16 @@ export function ResetPasswordForm() {
           display: flex; align-items: center; justify-content: center;
           transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
           box-shadow: 0 4px 14px rgba(109, 40, 217, 0.3);
-          text-decoration: none !important;
+          margin-top: 0.5rem;
         }
         .rf-btn:hover { background: #5b21b6; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(109, 40, 217, 0.4); }
-        .rf-btn:active { transform: translateY(0); }
         .rf-btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; box-shadow: none; }
-        .rf-btn-outline {
-          background: white !important; border: 2px solid #e5e7eb; color: #374151 !important;
-          box-shadow: none;
-        }
-        .rf-btn-outline:hover { background: #f9fafb !important; color: #111827 !important; border-color: #d1d5db; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .rf-link { font-size: 0.95rem; color: #6d28d9; font-weight: 600; cursor: pointer; text-decoration: none; transition: all 0.2s; }
-        .rf-link:hover { color: #5b21b6; text-decoration: underline; }
         .rf-spin {
           width: 24px; height: 24px;
           border: 3.5px solid rgba(255,255,255,0.3); border-top-color: white;
           border-radius: 50%; animation: spin 0.8s linear infinite;
         }
+        .rf-spin-emerald { border-color: rgba(16, 185, 129, 0.2); border-top-color: #10b981; }
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
     </div>
