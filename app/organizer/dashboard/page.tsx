@@ -17,6 +17,8 @@ import {
   Eye,
 } from 'lucide-react'
 import { useAuth } from '@/lib/auth-context'
+import { AnimatedText } from '@/components/animated-text'
+import { OrganizerHeaderBg } from '@/components/organizer-header-bg'
 
 type DashboardData = {
   stats: {
@@ -125,26 +127,30 @@ export default function OrganizerDashboard() {
   )
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-      <div className="space-y-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-sm text-muted-foreground">{dateStr}</p>
-            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-              Welcome back, {user?.name || 'Organizer'}
-            </h1>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" className="gap-2 rounded-xl">
-              <Download className="h-4 w-4" />
-              Export Data
-            </Button>
-            <Link href="/organizer/create-event">
-              <Button className="gap-2 rounded-xl shadow-md shadow-primary/25">
-                <Plus className="h-4 w-4" />
-                Create Event
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-10">
+      <div className="space-y-8">
+        <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-background/50">
+          <OrganizerHeaderBg />
+          <div className="relative z-10 p-8 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground mb-1">{dateStr}</p>
+              <AnimatedText 
+                text={`Welcome back, ${user?.name || 'Organizer'}`}
+                className="text-2xl font-bold tracking-tight sm:text-3xl" 
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" className="gap-2 rounded-xl bg-background/50 backdrop-blur-sm border-border/60">
+                <Download className="h-4 w-4" />
+                Export Data
               </Button>
-            </Link>
+              <Link href="/organizer/create-event">
+                <Button className="gap-2 rounded-xl shadow-md shadow-primary/25">
+                  <Plus className="h-4 w-4" />
+                  Create Event
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
 

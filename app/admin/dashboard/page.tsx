@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Users, Calendar, Shield, TrendingUp, Activity } from 'lucide-react'
+import { AnimatedText } from '@/components/animated-text'
+import { AdminHeaderBg } from '@/components/admin-header-bg'
 
 const roleBadgeColor: Record<string, string> = {
   attendee: 'bg-primary/10 text-primary',
@@ -126,15 +128,18 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-10">
       <div className="space-y-6">
         {/* Header */}
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Shield className="h-5 w-5 text-primary" />
-            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Admin Dashboard</h1>
+        <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-background/50">
+          <AdminHeaderBg />
+          <div className="relative z-10 px-6 py-10">
+            <div className="flex items-center gap-2 mb-1">
+              <Shield className="h-5 w-5 text-primary" />
+              <AnimatedText text="Admin Dashboard" className="text-2xl font-bold tracking-tight sm:text-3xl" as="h1" />
+            </div>
+            <p className="text-muted-foreground">Platform-wide overview and management</p>
           </div>
-          <p className="text-muted-foreground">Platform-wide overview and management</p>
         </div>
 
         {/* Stats Grid */}
@@ -147,9 +152,13 @@ export default function AdminDashboardPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-muted-foreground">{stat.label}</p>
-                      <p className="mt-1 text-2xl font-bold">
-                        {isLoading ? '...' : stat.value}
-                      </p>
+                      {isLoading ? (
+                        <div className="mt-1 h-8 w-20 animate-pulse rounded-md bg-muted/60" />
+                      ) : (
+                        <p className="mt-1 text-2xl font-bold">
+                          {stat.value}
+                        </p>
+                      )}
                     </div>
                     <div className="rounded-xl bg-muted/60 p-2.5">
                       <Icon className={`h-5 w-5 ${stat.color}`} />

@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { CountdownTimer } from '@/components/events/countdown-timer'
+import { AttendeeHeaderBg } from '@/components/attendee-header-bg'
 import { ROUTES, RSVP_STATUSES, DATE_FORMAT } from '@/lib/constants'
 import type { RSVPStatus } from '@/lib/types'
 
@@ -94,11 +95,12 @@ export default function MyRSVPsPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="mb-2 text-3xl font-bold text-foreground">My RSVPs</h1>
-        <p className="text-muted-foreground">
-          Your RSVP requests and approval status
-        </p>
+      <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-background/50 p-6">
+        <AttendeeHeaderBg />
+        <div className="relative z-10">
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">My RSVPs</h1>
+          <p className="text-muted-foreground">Your RSVP requests and approval status.</p>
+        </div>
       </div>
 
       {/* Stats */}

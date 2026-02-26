@@ -143,10 +143,6 @@ export function LoginForm() {
   return (
     <>
       <div className="lf-outer">
-        <Link href={ROUTES.HOME} className="lf-home-btn" aria-label="Go to home">
-          <ArrowLeft size={16} />
-          Home
-        </Link>
         {/* ── Left panel: hero image ── */}
         <div className="lf-hero">
           <Image
@@ -163,14 +159,20 @@ export function LoginForm() {
           <div className="lf-card">
 
           {/* Logo */}
-          <div className="lf-logo">
-            <span className="lf-logo-icon">
-              <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-                <path d="M10 1L18 5.5V14.5L10 19L2 14.5V5.5L10 1Z" fill="#6d28d9"/>
-                <path d="M6.5 10L9 12.5L14 8" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </span>
-            <span className="lf-logo-text">EventEase</span>
+          <div className="lf-header-top">
+            <div className="lf-logo">
+              <span className="lf-logo-icon">
+                <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+                  <path d="M10 1L18 5.5V14.5L10 19L2 14.5V5.5L10 1Z" fill="#6d28d9"/>
+                  <path d="M6.5 10L9 12.5L14 8" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </span>
+              <span className="lf-logo-text">EventEase</span>
+            </div>
+            <Link href={ROUTES.HOME} className="lf-home-link" aria-label="Go to home">
+              <ArrowLeft size={14} />
+              Home
+            </Link>
           </div>
 
           {/* Tab switcher */}
@@ -342,31 +344,29 @@ export function LoginForm() {
           background-color: #f0f4f8;
         }
 
-        .lf-home-btn {
-          position: fixed;
-          top: 18px;
-          right: 18px;
-          z-index: 60;
-          display: inline-flex;
+        .lf-header-top {
+          display: flex;
           align-items: center;
-          gap: 0.5rem;
-          padding: 0.55rem 0.85rem;
-          border-radius: 14px;
-          border: 1.5px solid rgba(34,197,94,0.35);
-          background: rgba(34,197,94,0.14);
-          color: #166534;
-          font-size: 0.85rem;
-          font-weight: 600;
-          text-decoration: none;
-          box-shadow: 0 6px 18px rgba(16,185,129,0.15);
-          transition: transform 0.1s, box-shadow 0.15s, background 0.15s, border-color 0.15s;
+          justify-content: space-between;
+          margin-bottom: 1.4rem;
         }
 
-        .lf-home-btn:hover {
-          background: rgba(34,197,94,0.20);
-          border-color: rgba(34,197,94,0.55);
-          box-shadow: 0 10px 26px rgba(16,185,129,0.22);
-          transform: translateY(-1px);
+        .lf-home-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.35rem;
+          padding: 0.4rem 0.6rem;
+          border-radius: 8px;
+          color: #6b7280;
+          font-size: 0.85rem;
+          font-weight: 500;
+          text-decoration: none;
+          transition: background 0.15s, color 0.15s;
+        }
+
+        .lf-home-link:hover {
+          background: #f3f4f6;
+          color: #111827;
         }
 
         @media (max-width: 900px) {
@@ -463,7 +463,7 @@ export function LoginForm() {
           color: #111827;
           background: #fff;
           outline: none;
-          transition: border-color 0.15s, box-shadow 0.15s;
+          transition: all 0.2s ease-in-out;
           box-sizing: border-box;
         }
         .lf-input::placeholder { color: #9ca3af; }
@@ -472,7 +472,16 @@ export function LoginForm() {
           box-shadow: 0 0 0 3px rgba(124,58,237,0.12);
         }
         .lf-input-pr { padding-right: 2.5rem; }
-        .lf-input-err { border-color: #ef4444 !important; }
+        .lf-input-err { 
+          border-color: #ef4444 !important; 
+          animation: lfShake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        @keyframes lfShake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-4px); }
+          50% { transform: translateX(4px); }
+          75% { transform: translateX(-4px); }
+        }
         .lf-err { font-size: 0.74rem; color: #ef4444; }
 
         /* Password wrapper */
@@ -509,16 +518,16 @@ export function LoginForm() {
           border: none;
           cursor: pointer;
           display: flex; align-items: center; justify-content: center;
-          transition: opacity 0.15s, transform 0.1s, box-shadow 0.15s;
+          transition: all 0.3s ease;
           box-shadow: 0 4px 14px rgba(124,58,237,0.35);
           letter-spacing: 0.01em;
         }
         .lf-btn:hover:not(:disabled) {
           opacity: 0.9;
-          transform: translateY(-1px);
+          transform: translateY(-2px);
           box-shadow: 0 6px 20px rgba(124,58,237,0.45);
         }
-        .lf-btn:active:not(:disabled) { transform: translateY(0); }
+        .lf-btn:active:not(:disabled) { transform: scale(0.95); }
         .lf-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
         /* Spinner */

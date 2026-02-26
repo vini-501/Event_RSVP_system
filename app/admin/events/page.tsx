@@ -21,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useToast } from '@/hooks/use-toast'
+import { AdminHeaderBg } from '@/components/admin-header-bg'
 
 const statusColors: Record<string, string> = {
   published: 'bg-primary/10 text-primary',
@@ -99,17 +100,20 @@ export default function AdminEventsPage() {
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <Calendar className="h-5 w-5 text-primary" />
-              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">All Events</h1>
+        <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-background/50 p-6">
+          <AdminHeaderBg />
+          <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Calendar className="h-5 w-5 text-primary" />
+                <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">All Events</h1>
+              </div>
+              <p className="text-muted-foreground">View and manage all events across the platform</p>
             </div>
-            <p className="text-muted-foreground">View and manage all events across the platform</p>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Calendar className="h-4 w-4" />
-            {events.length} total events
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Calendar className="h-4 w-4" />
+              {events.length} total events
+            </div>
           </div>
         </div>
 

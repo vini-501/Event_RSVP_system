@@ -18,6 +18,8 @@ import {
   Search,
 } from 'lucide-react'
 import { ROUTES } from '@/lib/constants'
+import { AnimatedText } from '@/components/animated-text'
+import { AttendeeHeaderBg } from '@/components/attendee-header-bg'
 
 type Event = {
   id: string
@@ -64,20 +66,28 @@ const quickActions = [
 ]
 
 function useGreeting() {
-  const hour = new Date().getHours()
-  if (hour < 12) return 'Good morning'
-  if (hour < 17) return 'Good afternoon'
-  return 'Good evening'
+  const [greeting, setGreeting] = useState('Welcome back')
+
+  useEffect(() => {
+    try {
+      const now = new Date()
+      const d = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }))
+      const hour = d.getHours()
+      if (hour < 12) setGreeting('Good morning')
+      else if (hour < 17) setGreeting('Good afternoon')
+      else setGreeting('Good evening')
+    } catch (e) {
+      const hour = new Date().getHours()
+      if (hour < 12) setGreeting('Good morning')
+      else if (hour < 17) setGreeting('Good afternoon')
+      else setGreeting('Good evening')
+    }
+  }, [])
+
+  return greeting
 }
 
 function EventCarousel({ events, isLoading }: { events: Event[]; isLoading: boolean }) {
-  const scrollRef = useRef<HTMLDivElement>(null)
-
-  const scroll = (dir: 'left' | 'right') => {
-    if (!scrollRef.current) return
-    scrollRef.current.scrollBy({ left: dir === 'left' ? -300 : 300, behavior: 'smooth' })
-  }
-
   if (isLoading) {
     return (
       <div className="flex gap-4 overflow-hidden">
@@ -100,54 +110,59 @@ function EventCarousel({ events, isLoading }: { events: Event[]; isLoading: bool
     )
   }
 
+  // Duplicate events to create a seamless loop
+  const duplicatedEvents = [...events, ...events, ...events, ...events]
+
   return (
-    <div className="relative">
-      <button
-        onClick={() => scroll('left')}
-        className="absolute left-1 top-1/2 z-10 hidden -translate-y-1/2 rounded-full border border-border/60 bg-background p-1.5 shadow-md transition-colors hover:bg-muted sm:inline-flex"
-      >
-        <ChevronLeft className="h-4 w-4" />
-      </button>
-      <div
-        ref={scrollRef}
-        className="flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth pb-2 pl-1 pr-2 scrollbar-hide"
-        style={{ scrollbarWidth: 'none' }}
-      >
-        {events.map((event) => (
-          <Link key={event.id} href={ROUTES.EVENT_DETAILS(event.id)} className="shrink-0 snap-start">
-            <Card className="group w-[220px] cursor-pointer transition-all duration-300 hover:border-primary/30 hover:shadow-lg sm:w-[260px]">
-              <CardContent className="p-5">
-                <Badge className="mb-3 text-xs capitalize bg-primary/10 text-primary border-0">
-                  {event.category || 'event'}
-                </Badge>
-                <p className="font-semibold text-sm leading-snug mb-3 group-hover:text-primary transition-colors line-clamp-2">
-                  {event.name}
-                </p>
-                <div className="space-y-1.5 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-1.5">
-                    <Clock className="h-3.5 w-3.5 shrink-0" />
-                    {new Date(event.start_date).toLocaleDateString('en-US', {
-                      month: 'short', day: 'numeric', year: 'numeric',
-                    })}
-                  </div>
-                  {event.location && (
+    <div className="relative overflow-hidden marquee-container -mx-4 px-4 sm:mx-0 sm:px-0">
+      <style>{`
+        @keyframes marquee {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .animate-marquee {
+          /* Adjust duration based on event count so speed is relatively consistent */
+          animation: marquee ${Math.max(30, events.length * 8)}s linear infinite;
+        }
+        .marquee-container:hover .animate-marquee {
+          animation-play-state: paused;
+        }
+      `}</style>
+      <div className="flex w-max animate-marquee py-2">
+        {duplicatedEvents.map((event, index) => (
+          <div key={`${event.id}-${index}`} className="shrink-0 pr-4">
+            <Link 
+              href={ROUTES.EVENT_DETAILS(event.id)} 
+              className="block h-full"
+            >
+              <Card className="group h-full cursor-pointer transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:-translate-y-1 w-[220px] sm:w-[260px]">
+                <CardContent className="p-5">
+                  <Badge className="mb-3 text-xs capitalize bg-primary/10 text-primary border-0">
+                    {event.category || 'event'}
+                  </Badge>
+                  <p className="font-semibold text-sm leading-snug mb-3 group-hover:text-primary transition-colors line-clamp-2">
+                    {event.name}
+                  </p>
+                  <div className="space-y-1.5 text-xs text-muted-foreground">
                     <div className="flex items-center gap-1.5">
-                      <MapPin className="h-3.5 w-3.5 shrink-0" />
-                      <span className="truncate">{event.location}</span>
+                      <Clock className="h-3.5 w-3.5 shrink-0" />
+                      {new Date(event.start_date).toLocaleDateString('en-US', {
+                        month: 'short', day: 'numeric', year: 'numeric',
+                      })}
                     </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
+                    {event.location && (
+                      <div className="flex items-center gap-1.5">
+                        <MapPin className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{event.location}</span>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          </div>
         ))}
       </div>
-      <button
-        onClick={() => scroll('right')}
-        className="absolute right-1 top-1/2 z-10 hidden -translate-y-1/2 rounded-full border border-border/60 bg-background p-1.5 shadow-md transition-colors hover:bg-muted sm:inline-flex"
-      >
-        <ChevronRight className="h-4 w-4" />
-      </button>
     </div>
   )
 }
@@ -176,25 +191,20 @@ export default function AttendeeHomePage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero */}
-      <div className="relative overflow-hidden">
-        {/* Ambient blobs */}
-        <div className="pointer-events-none absolute -top-32 -left-32 h-96 w-96 rounded-full bg-violet-500/10 blur-3xl" />
-        <div className="pointer-events-none absolute -top-16 right-0 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
+      <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-background/50 my-6">
+        <AttendeeHeaderBg />
 
-        <div className="relative mx-auto max-w-7xl px-4 pt-14 pb-10 sm:px-6 lg:px-8">
+        <div className="relative z-10 mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
           {/* Greeting */}
           <div className="flex items-center gap-2 mb-2">
             <Sparkles className="h-5 w-5 text-primary" />
             <span className="text-sm font-medium text-primary">{greeting}</span>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl mb-3">
-            Welcome back,{' '}
-            <span className="bg-gradient-to-r from-primary to-violet-400 bg-clip-text text-transparent">
-              {firstName}!
-            </span>{' '}
-            👋
-          </h1>
-          <p className="text-muted-foreground text-base max-w-md">
+          <AnimatedText 
+            text={`Welcome back, ${firstName}!`}
+            className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl mb-3"
+          />
+          <p className="text-muted-foreground text-base max-w-md mt-2">
             Discover events, track your RSVPs, and make the most of every experience.
           </p>
         </div>

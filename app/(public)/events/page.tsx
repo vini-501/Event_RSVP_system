@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/select'
 import { EventCard } from '@/components/events/event-card'
 import { EVENT_CATEGORIES } from '@/lib/constants'
+import { AnimatedText } from '@/components/animated-text'
 
 export default function EventsPage() {
   const [events, setEvents] = useState<any[]>([])
@@ -76,7 +77,6 @@ export default function EventsPage() {
     } else {
       filtered.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
     }
-
     return filtered
   }, [events, searchTerm, selectedCategory, sortBy])
 
@@ -84,7 +84,10 @@ export default function EventsPage() {
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">Discover Events</h1>
+        <AnimatedText 
+          text="Discover Events" 
+          className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl"
+        />
         <p className="mt-2 text-muted-foreground">Find and attend the best tech events near you.</p>
       </div>
 

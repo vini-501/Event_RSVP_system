@@ -16,6 +16,7 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/lib/auth-context'
+import { AdminHeaderBg } from '@/components/admin-header-bg'
 
 type OrganizerEvent = {
   id: string
@@ -104,17 +105,20 @@ export default function OrganizerCheckInHubPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
       <div className="space-y-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Check-In Hub</h1>
-            <p className="text-muted-foreground mt-1">
-              Scan QR tickets and track attendance across all events you host.
-            </p>
+        <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-background/50 p-6">
+          <AdminHeaderBg />
+          <div className="relative z-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Check-In Hub</h1>
+              <p className="text-muted-foreground mt-1">
+                Scan QR tickets and track attendance across all events you host.
+              </p>
+            </div>
+            <Button variant="outline" onClick={() => void loadData()} className="gap-2 rounded-xl">
+              <RefreshCw className="h-4 w-4" />
+              Refresh
+            </Button>
           </div>
-          <Button variant="outline" onClick={() => void loadData()} className="gap-2 rounded-xl">
-            <RefreshCw className="h-4 w-4" />
-            Refresh
-          </Button>
         </div>
 
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">

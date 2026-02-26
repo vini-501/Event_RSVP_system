@@ -18,6 +18,8 @@ import {
   CheckSquare,
 } from 'lucide-react'
 import { ROUTES } from '@/lib/constants'
+import { AnimatedText } from '@/components/animated-text'
+import { AdminHeaderBg } from '@/components/admin-header-bg'
 
 const quickActions = [
   {
@@ -63,10 +65,25 @@ const quickActions = [
 ]
 
 function useTimeOfDay() {
-  const hour = new Date().getHours()
-  if (hour < 12) return 'Good morning'
-  if (hour < 17) return 'Good afternoon'
-  return 'Good evening'
+  const [greeting, setGreeting] = useState('Welcome')
+
+  useEffect(() => {
+    try {
+      const now = new Date()
+      const d = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }))
+      const hour = d.getHours()
+      if (hour < 12) setGreeting('Good morning')
+      else if (hour < 17) setGreeting('Good afternoon')
+      else setGreeting('Good evening')
+    } catch (e) {
+      const hour = new Date().getHours()
+      if (hour < 12) setGreeting('Good morning')
+      else if (hour < 17) setGreeting('Good afternoon')
+      else setGreeting('Good evening')
+    }
+  }, [])
+
+  return greeting
 }
 
 function QuickActionsCarousel() {
@@ -163,50 +180,52 @@ export default function AdminHomePage() {
   ]
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Hero */}
-      <div className="relative overflow-hidden">
-        <div className="pointer-events-none absolute -top-20 -right-20 h-72 w-72 rounded-full bg-amber-500/8 blur-3xl" />
-        <div className="pointer-events-none absolute top-10 -left-10 h-56 w-56 rounded-full bg-primary/8 blur-3xl" />
+    <div className="min-h-screen bg-background text-foreground">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-10">
+        {/* Hero */}
+        <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-background/50">
+          <AdminHeaderBg />
 
-        <div className="relative mx-auto max-w-7xl px-4 pt-14 pb-10 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-2 mb-2">
-            <Shield className="h-5 w-5 text-amber-500" />
-            <span className="text-sm font-medium text-amber-600">Admin Command Centre</span>
+          <div className="relative z-10 mx-auto px-4 py-12 sm:px-6 lg:px-8">
+            <div className="flex items-center gap-2 mb-2">
+              <Shield className="h-5 w-5 text-amber-500" />
+              <span className="text-sm font-medium text-amber-600">Admin Command Centre</span>
+            </div>
+            <AnimatedText 
+              text={`${greeting}, ${firstName}`}
+              className="text-3xl font-bold tracking-tight sm:text-4xl mb-2" 
+            />
+            <p className="text-muted-foreground text-base max-w-md">
+              Here's a snapshot of what's happening across the platform.
+            </p>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl mb-2">
-            {greeting},{' '}
-            <span className="bg-gradient-to-r from-amber-500 to-primary bg-clip-text text-transparent">
-              {firstName}.
-            </span>
-          </h1>
-          <p className="text-muted-foreground text-base max-w-md">
-            Here's a snapshot of what's happening across the platform.
-          </p>
+        </div>
 
-          {/* Metrics Strip */}
-          <div className="mt-8 grid max-w-lg grid-cols-1 gap-4 sm:grid-cols-3">
+        {/* Metrics Strip */}
+        <section className="pt-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             {metricCards.map((m) => {
               const Icon = m.icon
               return (
-                <div key={m.label} className={`rounded-2xl border border-border/60 p-4 flex flex-col gap-2 bg-background`}>
+                <div key={m.label} className={`rounded-2xl border border-border/60 p-4 flex flex-col gap-2 bg-background/50 shadow-sm`}>
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${m.bg}`}>
                     <Icon className={`h-4 w-4 ${m.color}`} />
                   </div>
                   <div>
-                    <p className="text-xl font-bold leading-none">
-                      {isLoading ? '—' : m.value.toLocaleString()}
-                    </p>
+                    {isLoading ? (
+                      <div className="h-6 w-24 animate-pulse rounded bg-muted/60 mb-0.5" />
+                    ) : (
+                      <p className="text-xl font-bold leading-none">
+                        {m.value.toLocaleString()}
+                      </p>
+                    )}
                     <p className="text-xs text-muted-foreground mt-0.5">{m.label}</p>
                   </div>
                 </div>
               )
             })}
           </div>
-        </div>
-      </div>
-
-      <div className="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8 space-y-10">
+        </section>
         {/* Attention Banner */}
         {!isLoading && pendingRoleRequests.length > 0 && (
           <div className="flex flex-col gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">

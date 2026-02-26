@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { useAuth } from '@/lib/auth-context'
+import { AttendeeHeaderBg } from '@/components/attendee-header-bg'
 import { ROUTES } from '@/lib/constants'
 import { useToast } from '@/hooks/use-toast'
 
@@ -258,11 +259,12 @@ export default function MyTicketsPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="mb-2 text-3xl font-bold text-foreground">My Tickets</h1>
-        <p className="text-muted-foreground">
-          View and manage your event tickets and QR codes
-        </p>
+      <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-background/50 p-6">
+        <AttendeeHeaderBg />
+        <div className="relative z-10">
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">My Tickets</h1>
+          <p className="text-muted-foreground">View and manage your event tickets and QR codes.</p>
+        </div>
       </div>
 
       {/* Stats */}

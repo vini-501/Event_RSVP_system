@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Calendar, Users, Search, Plus, MapPin, ArrowUpRight, Loader2, RefreshCw } from 'lucide-react'
 import { useAuth } from '@/lib/auth-context'
+import { AdminHeaderBg } from '@/components/admin-header-bg'
 
 export default function OrganizerEventsPage() {
   const { user } = useAuth()
@@ -52,17 +53,20 @@ export default function OrganizerEventsPage() {
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Your Events</h1>
-            <p className="text-muted-foreground mt-1">Manage and monitor your events</p>
+        <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-background/50 p-6">
+          <AdminHeaderBg />
+          <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Your Events</h1>
+              <p className="text-muted-foreground mt-1">Manage and monitor your events</p>
+            </div>
+            <Link href="/organizer/create-event">
+              <Button className="gap-2 rounded-xl shadow-md shadow-primary/25">
+                <Plus className="h-4 w-4" />
+                Create Event
+              </Button>
+            </Link>
           </div>
-          <Link href="/organizer/create-event">
-            <Button className="gap-2 rounded-xl shadow-md shadow-primary/25">
-              <Plus className="h-4 w-4" />
-              Create Event
-            </Button>
-          </Link>
         </div>
 
         {/* Search */}

@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { ROUTES } from '@/lib/constants'
 import { Calendar, Users, BarChart3, Shield, Zap, Globe } from 'lucide-react'
+import { LandingAnimatedText } from '@/components/landing-animated-text'
 
 const features = [
   {
@@ -41,23 +42,17 @@ export default function HomePage() {
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
-      <section className="relative overflow-hidden">
-        {/* Background */}
-        <div className="absolute inset-0 bg-linear-to-br from-primary/5 via-background to-primary/10" />
-        <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-primary/5 blur-3xl" />
+      <section className="relative overflow-hidden bg-background">
+        {/* Subtle Background Pattern */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+        <div className="absolute left-0 right-0 top-0 -z-10 m-auto h-[310px] w-[310px] rounded-full bg-primary/20 opacity-20 blur-[100px]"></div>
 
         <div className="relative mx-auto max-w-7xl px-4 py-24 sm:px-6 sm:py-32 lg:px-8 lg:py-40">
           <div className="mx-auto max-w-2xl text-center">
-            <div className="mb-6 inline-flex items-center rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary">
+            <div className="mb-6 inline-flex items-center rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary border border-primary/20">
               ✨ The modern event platform
             </div>
-            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
-              Manage events{' '}
-              <span className="bg-linear-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                effortlessly
-              </span>
-            </h1>
+            <LandingAnimatedText />
             <p className="mt-6 text-lg leading-8 text-muted-foreground">
               Create stunning events, track RSVPs in real-time, and deliver unforgettable
               experiences — all from one beautiful dashboard.

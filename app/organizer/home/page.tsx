@@ -18,6 +18,8 @@ import {
   TrendingUp,
 } from 'lucide-react'
 import { ROUTES } from '@/lib/constants'
+import { AnimatedText } from '@/components/animated-text'
+import { OrganizerHeaderBg } from '@/components/organizer-header-bg'
 
 type OrgEvent = {
   id: string
@@ -161,8 +163,32 @@ function EventCarousel({ events, isLoading }: { events: OrgEvent[]; isLoading: b
   )
 }
 
+function useTimeOfDay() {
+  const [greeting, setGreeting] = useState('Welcome')
+
+  useEffect(() => {
+    try {
+      const timeString = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata', hour12: false })
+      const hourStr = timeString.split(' ')[1].split(':')[0]
+      const hour = parseInt(hourStr, 10) % 24
+      
+      if (hour < 12) setGreeting('Good morning')
+      else if (hour < 17) setGreeting('Good afternoon')
+      else setGreeting('Good evening')
+    } catch (e) {
+      const hour = new Date().getHours()
+      if (hour < 12) setGreeting('Good morning')
+      else if (hour < 17) setGreeting('Good afternoon')
+      else setGreeting('Good evening')
+    }
+  }, [])
+
+  return greeting
+}
+
 export default function OrganizerHomePage() {
   const { user } = useAuth()
+  const greeting = useTimeOfDay()
   const firstName = user?.name?.split(' ')[0] || 'Organizer'
   const [events, setEvents] = useState<OrgEvent[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -193,29 +219,29 @@ export default function OrganizerHomePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Hero */}
-      <div className="relative overflow-hidden">
-        <div className="pointer-events-none absolute -top-24 -right-24 h-80 w-80 rounded-full bg-emerald-500/10 blur-3xl" />
-        <div className="pointer-events-none absolute top-10 left-0 h-64 w-64 rounded-full bg-primary/8 blur-3xl" />
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-12">
+        {/* Hero */}
+        <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-background/50">
+          <OrganizerHeaderBg />
 
-        <div className="relative mx-auto max-w-7xl px-4 pt-14 pb-10 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-2 mb-2">
-            <Rocket className="h-5 w-5 text-emerald-500" />
-            <span className="text-sm font-medium text-emerald-600">Organizer Studio</span>
+          <div className="relative z-10 mx-auto px-4 py-12 sm:px-6 lg:px-8">
+            <div className="flex items-center gap-2 mb-2">
+              <Rocket className="h-5 w-5 text-emerald-500" />
+              <span className="text-sm font-medium text-emerald-600">Organizer Studio</span>
+            </div>
+            <AnimatedText 
+              text={`${greeting}, ${firstName}`}
+              className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl mb-3"
+            />
+            <p className="text-muted-foreground text-base max-w-md">
+              Build unforgettable events, engage your audience, and track every detail.
+            </p>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl mb-3">
-            Ready to create something{' '}
-            <span className="bg-gradient-to-r from-emerald-500 to-primary bg-clip-text text-transparent">
-              amazing
-            </span>
-            , {firstName}?
-          </h1>
-          <p className="text-muted-foreground text-base max-w-md">
-            Build unforgettable events, engage your audience, and track every detail.
-          </p>
+        </div>
 
-          {/* Stat Strip */}
-          <div className="mt-8 flex flex-wrap gap-6">
+        {/* Stat Strip */}
+        <section className="pt-2">
+          <div className="flex flex-wrap gap-6">
             {[
               { icon: Calendar, label: 'Total Events', value: isLoading ? '—' : stats.totalEvents },
               { icon: Users, label: 'Total RSVPs', value: isLoading ? '—' : stats.totalRsvps },
@@ -224,7 +250,7 @@ export default function OrganizerHomePage() {
               const Icon = s.icon
               return (
                 <div key={s.label} className="flex items-center gap-3">
-                  <div className="rounded-xl bg-muted/60 p-2.5">
+                  <div className="rounded-xl bg-muted/60 p-2.5 shadow-sm">
                     <Icon className="h-4 w-4 text-primary" />
                   </div>
                   <div>
@@ -235,10 +261,7 @@ export default function OrganizerHomePage() {
               )
             })}
           </div>
-        </div>
-      </div>
-
-      <div className="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8 space-y-12">
+        </section>
         {/* Quick Actions */}
         <section>
           <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-4">

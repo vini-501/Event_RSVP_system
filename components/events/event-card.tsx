@@ -18,16 +18,20 @@ export function EventCard({ event, variant = 'default' }: EventCardProps) {
   if (variant === 'compact') {
     return (
       <Link href={ROUTES.EVENT_DETAILS(event.id)}>
-        <Card className="group cursor-pointer overflow-hidden transition-all duration-300 hover:shadow-md border-border/60 hover:border-primary/20">
+        <Card className="group cursor-pointer overflow-hidden transition-all duration-300 hover:shadow-xl border-border/60 hover:border-primary/20 hover:-translate-y-1">
           <div className="h-1 bg-gradient-to-r from-primary to-primary/40" />
           <div className="p-4">
             <div className="mb-2 flex items-start justify-between">
               <h3 className="line-clamp-2 text-sm font-semibold group-hover:text-primary transition-colors">
                 {event.name}
               </h3>
-              {event.price && (
+              {event.price && event.price > 0 ? (
                 <span className="whitespace-nowrap text-sm font-bold text-primary">
                   ${event.price}
+                </span>
+              ) : (
+                <span className="whitespace-nowrap text-sm font-bold text-success">
+                  Free
                 </span>
               )}
             </div>
@@ -62,9 +66,9 @@ export function EventCard({ event, variant = 'default' }: EventCardProps) {
 
   return (
     <Link href={ROUTES.EVENT_DETAILS(event.id)}>
-      <Card className="group overflow-hidden transition-all duration-300 hover:shadow-md border-border/60 hover:border-primary/20">
-        <div className="aspect-video bg-gradient-to-br from-primary/10 via-primary/5 to-background relative">
-          <div className="absolute inset-0 flex items-center justify-center">
+      <Card className="group overflow-hidden transition-all duration-300 hover:shadow-xl border-border/60 hover:border-primary/20 hover:-translate-y-1">
+        <div className="aspect-video bg-gradient-to-br from-primary/10 via-primary/5 to-background relative overflow-hidden">
+          <div className="absolute inset-0 flex items-center justify-center transition-transform duration-500 group-hover:scale-105">
             <Calendar className="h-12 w-12 text-primary/20" />
           </div>
         </div>
@@ -78,10 +82,14 @@ export function EventCard({ event, variant = 'default' }: EventCardProps) {
                 {event.name}
               </h2>
             </div>
-            {event.price && (
+            {event.price && event.price > 0 ? (
               <div className="text-right">
                 <div className="text-xs text-muted-foreground">From</div>
                 <div className="text-xl font-bold text-primary">${event.price}</div>
+              </div>
+            ) : (
+              <div className="text-right">
+                <div className="text-xl font-bold text-success mt-4">Free</div>
               </div>
             )}
           </div>

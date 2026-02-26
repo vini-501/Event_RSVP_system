@@ -14,6 +14,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Search, Calendar, User, Check, X, Loader2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { AdminHeaderBg } from '@/components/admin-header-bg'
 
 type AdminRsvp = {
   id: string
@@ -105,9 +106,12 @@ export default function AdminRsvpsPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">RSVP Approvals</h1>
-          <p className="text-muted-foreground">Approve or reject attendee RSVP requests.</p>
+        <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-background/50 p-6">
+          <AdminHeaderBg />
+          <div className="relative z-10">
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">RSVP Approvals</h1>
+            <p className="text-muted-foreground">Approve or reject attendee RSVP requests.</p>
+          </div>
         </div>
 
         <Card className="border-border/60 p-4">

@@ -201,34 +201,36 @@ export function Navbar() {
     <nav className="sticky top-0 z-50 bg-card/80 backdrop-blur-xl border-b border-border/60">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          {/* Logo */}
-          <Link href={isAuthenticated && user ? dashboardRoute : ROUTES.HOME} className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary shadow-md shadow-primary/25">
-              <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                <path d="M10 1L18 5.5V14.5L10 19L2 14.5V5.5L10 1Z" fill="#6d28d9" />
-                <path d="M6.5 10L9 12.5L14 8" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-            <span className="inline text-base font-bold text-foreground sm:text-lg">
-              EventEase
-            </span>
-          </Link>
+          <div className="flex items-center gap-8">
+            {/* Logo */}
+            <Link href={isAuthenticated && user ? dashboardRoute : ROUTES.HOME} className="flex items-center gap-2.5">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary shadow-md shadow-primary/25">
+                <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                  <path d="M10 1L18 5.5V14.5L10 19L2 14.5V5.5L10 1Z" fill="#6d28d9" />
+                  <path d="M6.5 10L9 12.5L14 8" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+              <span className="inline text-base font-bold text-foreground sm:text-lg">
+                EventEase
+              </span>
+            </Link>
 
-          {/* Desktop Navigation — Pill Tabs */}
-          <div className="hidden items-center gap-1 rounded-full bg-muted/60 p-1 md:flex">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200 ${
-                  isActive(item.href)
-                    ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-background/60'
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
+            {/* Desktop Navigation — Pill Tabs */}
+            <div className="hidden items-center gap-1 rounded-full bg-muted/60 p-1 md:flex">
+              {navItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200 ${
+                    isActive(item.href)
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-background/60'
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </div>
           </div>
 
           {/* Right Side — Search, Settings, Avatar */}
@@ -345,11 +347,13 @@ export function Navbar() {
                         Dashboard
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href={ROUTES.MY_RSVPS} className="flex items-center gap-2 cursor-pointer">
-                        My RSVPs
-                      </Link>
-                    </DropdownMenuItem>
+                    {user.role !== 'admin' && (
+                      <DropdownMenuItem asChild>
+                        <Link href={ROUTES.MY_RSVPS} className="flex items-center gap-2 cursor-pointer">
+                          My RSVPs
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem asChild>
                       <Link href={ROUTES.PROFILE} className="flex items-center gap-2 cursor-pointer">
                         <User className="h-4 w-4" />

@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useToast } from '@/hooks/use-toast'
 import { createClient } from '@/lib/supabase/client'
+import { AdminHeaderBg } from '@/components/admin-header-bg'
 
 type UserRole = 'attendee' | 'organizer' | 'admin'
 
@@ -160,17 +161,20 @@ export default function AdminUsersPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
       <div className="space-y-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="mb-1 flex items-center gap-2">
-              <Users className="h-5 w-5 text-primary" />
-              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">User Management</h1>
+        <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-background/50 p-6">
+          <AdminHeaderBg />
+          <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="mb-1 flex items-center gap-2">
+                <Users className="h-5 w-5 text-primary" />
+                <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">User Management</h1>
+              </div>
+              <p className="text-muted-foreground">Manage users, roles, and permissions</p>
             </div>
-            <p className="text-muted-foreground">Manage users, roles, and permissions</p>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Shield className="h-4 w-4" />
-            {users.length} total users
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Shield className="h-4 w-4" />
+              {users.length} total users
+            </div>
           </div>
         </div>
 
@@ -202,7 +206,20 @@ export default function AdminUsersPage() {
         <Card className="overflow-hidden border-border/60">
           <div className="overflow-x-auto">
             {isLoading ? (
-              <div className="p-10 text-center text-sm text-muted-foreground">Loading users...</div>
+              <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+                <div className="space-y-4 w-full px-6">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-4">
+                      <div className="h-9 w-9 animate-pulse rounded-full bg-muted" />
+                      <div className="space-y-2 flex-1">
+                        <div className="h-4 w-1/4 animate-pulse rounded bg-muted" />
+                        <div className="h-3 w-1/3 animate-pulse rounded bg-muted/60" />
+                      </div>
+                      <div className="h-6 w-24 animate-pulse rounded-full bg-muted" />
+                    </div>
+                  ))}
+                </div>
+              </div>
             ) : (
               <table className="min-w-[760px] w-full">
                 <thead>
@@ -230,11 +247,9 @@ export default function AdminUsersPage() {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-                            {user.name
-                              .split(' ')
-                              .map((n) => n[0])
-                              .join('')
-                              .slice(0, 2)}
+                            {user.name && user.name.trim() !== ''
+                              ? user.name.split(' ').map((n) => n[0]).join('').slice(0, 2)
+                              : <Users className="h-4 w-4" />}
                           </div>
                           <div className="min-w-0">
                             <p className="max-w-[220px] truncate text-sm font-medium">{user.name}</p>
@@ -303,9 +318,12 @@ export default function AdminUsersPage() {
             )}
           </div>
           {!isLoading && filteredUsers.length === 0 && (
-            <div className="p-12 text-center">
-              <Users className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-              <p className="text-muted-foreground">No users found matching your criteria</p>
+            <div className="p-16 text-center bg-muted/10 border-t border-border/60">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted/60">
+                <Users className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <p className="text-base font-medium text-foreground">No matching users</p>
+              <p className="mt-1 text-sm text-muted-foreground">Adjust your search or filter to find who you're looking for.</p>
             </div>
           )}
         </Card>
